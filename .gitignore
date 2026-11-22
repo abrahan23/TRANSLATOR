@@ -1,0 +1,27 @@
+# Dependencias
+node_modules
+
+# Salidas de compilación y ficheros que genera WXT
+.output
+.wxt
+stats.html
+stats-*.json
+web-ext.config.ts
+
+# Moonshine copiado y parcheado por scripts/prepare-moonshine.mjs
+public/moonshine/
+
+# Audio de referencia y lo que se genera a partir de él (tools/)
+tools/reference-audio/
+
+# Skill de terceros, sin licencia declarada: se queda en local
+.claude/skills/chrome-extension-developer/
+
+# Registros
+*.log
+
+# Sistema y editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json

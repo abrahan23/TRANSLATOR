@@ -1,0 +1,40 @@
+{
+  "name": "translator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Transcribe en vivo, en el propio ordenador, el audio de una llamada abierta en una pestaña de Chrome.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "prepare:moonshine": "node scripts/prepare-moonshine.mjs",
+    "predev": "npm run prepare:moonshine",
+    "dev": "wxt",
+    "prebuild": "npm run prepare:moonshine",
+    "build": "wxt build",
+    "prebuild:dev": "npm run prepare:moonshine",
+    "build:dev": "wxt build --mode development",
+    "compile": "tsc --noEmit",
+    "test": "npm run build && npm run build:dev && vitest run",
+    "test:unit": "vitest run --exclude 'tests/build/**'",
+    "prepare:reference": "node tools/prepare-reference.mjs",
+    "serve:reference": "node tools/serve-reference.mjs",
+    "compare:delay": "node tools/compare-delay.mjs",
+    "postinstall": "wxt prepare"
+  },
+  "dependencies": {
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@moonshine-ai/moonshine-wasm": "0.1.6",
+    "@types/node": "^22.0.0",
+    "@types/react": "^19.2.14",
+    "@types/react-dom": "^19.2.3",
+    "@wxt-dev/module-react": "^1.1.5",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1",
+    "wxt": "0.21.5"
+  }
+}

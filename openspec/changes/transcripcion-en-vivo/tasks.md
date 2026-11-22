@@ -1,0 +1,53 @@
+# Tasks
+
+## 1. Extensión mínima y comprobación de lo no probado (bloquea todo lo demás)
+
+- [x] 1.1 Crear el proyecto: WXT, React, TypeScript y Vitest, con `wxt` y `@moonshine-ai/moonshine-wasm` en versión exacta; `.gitignore` (dependencias, salidas de compilación, `public/moonshine/` y audio de referencia); manifest con los permisos de D14, las claves de aislamiento y la política de contenido de D1. Verificación: `npm run build`, `npm run compile` y `npm test` en verde, con una prueba que compara los permisos del manifest generado con la lista de D14.
+- [x] 1.2 Escribir `scripts/prepare-moonshine.mjs` (copia del paquete y parche de D1) y ejecutarlo antes de `wxt dev` y `wxt build`. Verificación: pruebas del parche (falla si un fragmento falta o se repite, o si queda alguna función creada a partir de texto) y carpeta `public/moonshine/` generada.
+- [x] 1.3 Extensión mínima de punta a punta: el clic en el icono abre el panel y anota la pestaña; «Iniciar» captura la pestaña, sigue reproduciendo su audio, lo entrega a Moonshine Tiny a 16 kHz y pinta el texto; «Detener» lo para. De momento el modelo lo descarga el propio paquete. README inicial con cómo compilarla y cargarla en Chrome. Verificación: en Chrome, una pestaña con un vídeo en inglés hace aparecer su texto en el panel y se sigue oyendo.
+- [x] 1.4 Comprobar el panel y la captura con la extensión mínima: el panel está aislado de otros orígenes y el worker de Moonshine arranca; «Iniciar» abre la captura segundos y 5 minutos después del clic en el icono y tras cambiar de pestaña; cerrar el panel descarga su página y termina la captura; qué error exacto dan una página protegida y una pestaña sin permiso; el segundo contexto de audio entrega 16 kHz y mezcla bien una pestaña en estéreo. Verificación: resultado de cada punto anotado en `docs/medicion.md`.
+- [x] 1.5 Comprobar el modelo y la red: Moonshine acepta los ficheros que una descarga propia de prueba guarda en su caché; con el modelo guardado arranca sin conexión; durante una captura no hay ninguna petición de red; un bloqueo y un canal de avisos se ven entre el panel y la página de ajustes. Verificación: resultado de cada punto anotado en `docs/medicion.md`.
+- [x] 1.6 Preparar el audio de referencia (D12): script en `tools/` que baja la reunión del corpus AMI, recorta el tramo y genera la lista de palabras con sus instantes; página local que lo reproduce y anota la hora de inicio; cita del corpus en el README. Verificación: audio y lista generados fuera de git, y 20 palabras repartidas por el tramo revisadas a oído. (La revisión a oído no se hace: el usuario la da por buena el 2026-11-20. Queda la comprobación automática, anotada en `docs/medicion.md`.)
+- [x] 1.7 Medición de comprobación (D11): lista de palabras con su hora de aparición, solo en la versión de desarrollo, y script que la compara con la referencia. Verificación: pruebas del script con datos de resultado conocido y prueba de que la versión normal no incluye la lista.
+- [x] 1.8 Medir con el audio de referencia reproducido en una pestaña: Tiny tres veces, y probar otros intervalos de actualización del motor. Verificación: tabla en `docs/medicion.md` con mediana, percentil 90, máximo, porcentaje dentro de 1 segundo y porcentaje de palabras perdidas.
+- [x] 1.9 Presentar los resultados al usuario. Si una comprobación falla o Tiny no llega al 90 %, parar, plantear la salida prevista en el diseño y actualizar diseño y specs antes de seguir. Verificación: decisión anotada en `docs/medicion.md` y `openspec validate "transcripcion-en-vivo" --strict` en verde.
+
+## 2. Modelo de voz
+
+- [ ] 2.1 Módulo `src/model/` (D3): tabla fija de los tres tamaños, descarga cancelable con progreso sobre el total, comprobación del tamaño de cada fichero, guardado solo de ficheros completos, estado «descargado» y «Volver a descargar». Verificación: pruebas con red y caché simuladas (progreso, cancelación, tamaño incorrecto, corte a mitad, reintento, modelo a medias que no cuenta) y prueba de que el paquete instalado conserva el nombre de la caché y las direcciones de la tabla.
+- [ ] 2.2 Descarga única compartida (D4): un bloqueo por tamaño y un canal de avisos; la página que espera muestra el progreso, puede cancelar y continúa la descarga si la otra se cierra. Verificación: pruebas con bloqueo y canal simulados; en Chrome, «Descargar ahora» e «Iniciar» a la vez dan una sola descarga.
+- [ ] 2.3 Almacén de ajustes (`src/settings/`): tamaño elegido en `storage.local`, Tiny si no hay ninguno, aviso de cambios. Verificación: pruebas con el navegador simulado, incluida una que comprueba que nada se escribe en `storage.sync`.
+- [ ] 2.4 Página de ajustes: los tres tamaños con lo que ocupa cada uno, aviso de «más preciso, más lento» en Small y Medium, descargado o pendiente según la caché, «Descargar ahora» con progreso, «Cancelar» y «Reintentar», y selector desactivado durante una captura. Crear `docs/qa-manual.md` con los escenarios de `modelo-de-voz` que se ven en los ajustes. Verificación: esos escenarios recorridos en Chrome, con resultado y fecha.
+
+## 3. Motor y captura
+
+- [ ] 3.1 Interfaz del motor y adaptador de Moonshine (D2): líneas convertidas en fragmentos, frase de calentamiento, corte del audio antes de detener y los tres casos de fallo. Verificación: pruebas con eventos reales guardados y con un worker simulado para cada caso de fallo.
+- [ ] 3.2 Pestaña objetivo (D7): el panel muestra su título, pide hacer clic en el icono cuando no hay ninguna e ignora los cambios durante una captura. Verificación: pruebas con el navegador simulado; en Chrome, un segundo clic en el icono no cierra el panel.
+- [ ] 3.3 Módulo de captura (`src/audio/`): captura de la pestaña objetivo, los dos caminos de audio de D8, liberación de todo al terminar y captura única con el bloqueo de D13. Verificación: prueba de la captura única; en Chrome, la pestaña se oye igual durante la captura y después, y su indicador de captura desaparece al detener.
+- [ ] 3.4 Fin de la captura (tabla de D9) y pestaña que no se puede capturar, con los dos mensajes de la spec. La página protegida se reconoce porque llega sin dirección en el clic en el icono (D7), y no se pide su captura. Verificación: pruebas de los motivos de fin, de los errores observados en 1.4 y de la pestaña que llega sin dirección; escenarios de «Fin de la captura» y «Pestaña que no se puede capturar» recorridos en Chrome y añadidos a `docs/qa-manual.md`.
+
+## 4. Panel y transcripción
+
+- [ ] 4.1 Estado del panel como función pura (D10): estados, texto definitivo y provisional, paso a definitivo al terminar, separación entre capturas y «Limpiar». Verificación: pruebas de cada transición y de la corrección de un fragmento provisional sin duplicarlo.
+- [ ] 4.2 Secuencia de «Iniciar» (D5): descarga si falta, con progreso y «Cancelar»; «Preparando»; captura. Incluye «Reintentar», «Volver a descargar» y unirse a una descarga ya en marcha. Verificación: pruebas de la secuencia con módulos simulados; en Chrome, los escenarios de descarga de `modelo-de-voz` en el panel, también sin conexión.
+- [ ] 4.3 Interfaz del panel: título de la pestaña, aviso permanente de captura, aviso de solo inglés, aspecto distinto para el texto provisional, vista que sigue al texto nuevo y control para volver al final. Verificación: en Chrome, los escenarios de «Aviso visible mientras se captura», «Solo se transcriben llamadas en inglés» y «La vista sigue al texto más reciente».
+- [ ] 4.4 Retardo (D11): estimación en vivo con el valor habitual y el peor, detalle de diagnóstico y aviso de que el ordenador no da abasto. Verificación: pruebas con temporizadores simulados; en Chrome, el aviso aparece al forzarlo con Medium y el procesador ocupado, y se retira al bajar el retardo.
+- [ ] 4.5 Fallo del motor: se conserva el texto, termina la captura, el panel lo explica y ofrece «Iniciar»; al reiniciar, el texto continúa debajo con una separación. Verificación: pruebas del estado; en Chrome, terminando el worker a mano durante una captura.
+- [ ] 4.6 Registro de diagnóstico único, que nunca recibe texto transcrito. Verificación: prueba que le pasa texto y comprueba que no sale; tras una captura, el almacenamiento de la extensión solo contiene el tamaño elegido y la pestaña objetivo.
+- [ ] 4.7 Completar `docs/qa-manual.md` con los escenarios que falten de las tres specs y el README con el uso, el aviso de privacidad, la memoria que ocupa el motor y la cita del corpus. Verificación: los 59 escenarios figuran en la lista y el README, seguido desde una copia limpia, llega hasta transcribir.
+
+## 5. Comprobación de integración
+
+- [ ] 5.1 Recorrer los 59 escenarios de `docs/qa-manual.md` con la extensión compilada para producción, cargada desde cero y con el audio de referencia. Verificación: los 59 con resultado y fecha; cualquier fallo queda descrito y se plantea al usuario.
+- [ ] 5.2 Medir el objetivo de la spec con la versión de desarrollo de la extensión terminada: Tiny tres veces con el audio de referencia; Small y Medium una vez, como dato. Verificación: al menos el 90 % de las palabras dentro de 1,5 segundos con Tiny, anotado en `docs/medicion.md` junto a la diferencia con la estimación en vivo. Si no se cumple, parar y plantearlo al usuario.
+- [ ] 5.3 Inspeccionar el tráfico de red durante una captura y empezar otra sin conexión con el modelo guardado. Verificación: ninguna petición durante la captura y transcripción normal sin conexión, anotado en `docs/qa-manual.md`.
+- [ ] 5.4 Llamada real en inglés de al menos 15 minutos, con auriculares y con altavoces: el usuario oye bien y sin desfase apreciable, los demás no oyen eco, y el texto sigue llegando al cambiar de pestaña y tras 5 minutos con la ventana minimizada. Verificación: resultado y retardo estimado anotados en `docs/qa-manual.md`.
+- [ ] 5.5 Cierre: `npm test`, `npm run compile`, `npm run build` y `openspec validate "transcripcion-en-vivo" --strict` en verde. Verificación: salida de los cuatro comandos.
+
+## Workflow follow-up
+
+- Ningún commit sin el ok del usuario. El repositorio no tiene commits ni remoto.
+- Lo que se instala o se descarga (dependencias de npm, modelo de voz, audio del corpus AMI) se anuncia antes de hacerlo.
+- Snyk no aplica mientras no haya un despliegue real: la extensión se carga en local.
+- Archivar el change con `openspec-archive-change` cuando el usuario dé por buena la comprobación de integración.
+- Siguiente change: `traduccion-en-vivo`.

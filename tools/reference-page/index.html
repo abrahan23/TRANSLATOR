@@ -1,0 +1,229 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio de referencia · TRANSLATOR</title>
+    <style>
+      body {
+        font: 16px/1.5 system-ui, sans-serif;
+        max-width: 46rem;
+        margin: 2rem auto;
+        padding: 0 1rem;
+        color: #1c1c1c;
+        background: #fff;
+      }
+      h1 {
+        margin-bottom: 0;
+      }
+      .credit,
+      .hint {
+        color: #5c5c5c;
+      }
+      button {
+        font: inherit;
+        padding: 0.25rem 0.75rem;
+      }
+      output {
+        font-family: ui-monospace, monospace;
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      td {
+        border-top: 1px solid #ddd;
+        padding: 0.4rem 0.5rem 0.4rem 0;
+        vertical-align: top;
+      }
+      td.word {
+        font-weight: 600;
+      }
+      td.context {
+        color: #5c5c5c;
+        font-size: 0.9em;
+      }
+      .error {
+        color: #a40000;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Audio de referencia</h1>
+    <p class="credit">
+      Tramo de una reunión del AMI Meeting Corpus (Universidad de Edimburgo, licencia CC BY 4.0).
+      <span id="summary"></span>
+    </p>
+    <p class="error" id="error" hidden></p>
+
+    <h2>Medir el retardo</h2>
+    <ol>
+      <li>Haz clic en el icono de TRANSLATOR en esta pestaña y pulsa «Iniciar» en el panel.</li>
+      <li>Cuando el panel diga «Transcribiendo», pulsa «Reproducir» aquí.</li>
+      <li>Al acabar el audio, pulsa «Detener» y «Copiar medición» en el panel, y «Copiar hora de inicio» aquí.</li>
+    </ol>
+    <p>
+      <button type="button" id="play">Reproducir</button>
+      <button type="button" id="stop">Parar</button>
+      <span id="progress"></span>
+    </p>
+    <p>
+      Hora de inicio: <output id="started">—</output>
+      <button type="button" id="copy" disabled>Copiar hora de inicio</button>
+    </p>
+    <p class="hint">
+      Es la hora del reloj, en milisegundos, a la que sonó el principio del audio. Se calcula durante toda la
+      reproducción; si el audio se atasca, el margen que aparece al lado crece.
+    </p>
+
+    <h2>Revisar a oído</h2>
+    <p>
+      Veinte palabras repartidas por el tramo. «Oír» reproduce solo el instante anotado para la palabra: tiene que
+      oírse esa palabra y no la de al lado. «Con contexto» reproduce la frase de alrededor.
+    </p>
+    <table>
+      <tbody id="words"></tbody>
+    </table>
+    <p id="reviewed"></p>
+
+    <audio id="audio" src="referencia.wav" preload="auto"></audio>
+
+    <script>
+      const audio = document.getElementById('audio');
+      const progress = document.getElementById('progress');
+      const started = document.getElementById('started');
+      const copy = document.getElementById('copy');
+
+      // Lo que lee una medición automática.
+      const run = (window.referenceRun = { startedAtMs: null, spreadMs: null, samples: 0, ended: false });
+      let estimates = [];
+      let measuring = false;
+      let stopAt = null;
+
+      const clock = (seconds) => `${Math.floor(seconds / 60)}:${(seconds % 60).toFixed(1).padStart(4, '0')}`;
+
+      // Cada lectura da una estimación de la hora a la que sonó el segundo cero. Se usa la mediana.
+      function sample() {
+        if (!measuring || audio.paused || audio.seeking || audio.currentTime < 0.2) return;
+        estimates.push(Date.now() - audio.currentTime * 1000);
+        const sorted = [...estimates].sort((a, b) => a - b);
+        run.samples = sorted.length;
+        run.startedAtMs = Math.round(sorted[Math.floor(sorted.length / 2)]);
+        run.spreadMs = Math.round(sorted.at(-1) - sorted[0]);
+        started.textContent = `${run.startedAtMs} (margen: ${run.spreadMs} ms, ${run.samples} lecturas)`;
+        copy.disabled = false;
+      }
+
+      audio.addEventListener('timeupdate', () => {
+        sample();
+        if (measuring) progress.textContent = `${clock(audio.currentTime)} de ${clock(audio.duration)}`;
+      });
+      audio.addEventListener('ended', () => {
+        if (!measuring) return;
+        measuring = false;
+        run.ended = true;
+        progress.textContent = 'Audio terminado.';
+      });
+      // Corta la reproducción de una palabra suelta al llegar a su final.
+      setInterval(() => {
+        if (stopAt !== null && audio.currentTime >= stopAt) {
+          audio.pause();
+          stopAt = null;
+        }
+      }, 10);
+
+      document.getElementById('play').addEventListener('click', () => {
+        estimates = [];
+        Object.assign(run, { startedAtMs: null, spreadMs: null, samples: 0, ended: false });
+        started.textContent = '—';
+        copy.disabled = true;
+        stopAt = null;
+        measuring = true;
+        audio.currentTime = 0;
+        void audio.play();
+      });
+      document.getElementById('stop').addEventListener('click', () => {
+        measuring = false;
+        stopAt = null;
+        audio.pause();
+        progress.textContent = '';
+      });
+      copy.addEventListener('click', () => void navigator.clipboard.writeText(String(run.startedAtMs)));
+
+      function playSpan(from, to) {
+        measuring = false;
+        progress.textContent = '';
+        audio.currentTime = Math.max(0, from);
+        stopAt = to;
+        void audio.play();
+      }
+
+      function button(label, onClick) {
+        const element = document.createElement('button');
+        element.type = 'button';
+        element.textContent = label;
+        element.addEventListener('click', onClick);
+        return element;
+      }
+
+      function cell(className, ...children) {
+        const element = document.createElement('td');
+        element.className = className;
+        element.append(...children);
+        return element;
+      }
+
+      function showWords(reference) {
+        const reviewed = document.getElementById('reviewed');
+        const boxes = [];
+        const count = () => {
+          reviewed.textContent = `${boxes.filter((box) => box.checked).length} de ${boxes.length} revisadas.`;
+        };
+        for (const index of reference.earCheck) {
+          const word = reference.words[index];
+          const from = word.start - 2;
+          const to = word.end + 1;
+          const around = reference.words.filter((other) => other.start >= from && other.end <= to);
+          const context = document.createElement('span');
+          for (const other of around) {
+            const piece = document.createElement(other === word ? 'strong' : 'span');
+            piece.textContent = `${other.text} `;
+            context.append(piece);
+          }
+          const box = document.createElement('input');
+          box.type = 'checkbox';
+          box.setAttribute('aria-label', `Revisada: ${word.text}`);
+          box.addEventListener('change', count);
+          boxes.push(box);
+          const row = document.createElement('tr');
+          row.append(
+            cell('time', `${clock(word.start)} · ${word.speaker}`),
+            cell('word', word.text),
+            cell('play', button('Oír', () => playSpan(word.start, word.end))),
+            cell('play', button('Con contexto', () => playSpan(from, to))),
+            cell('context', context),
+            cell('check', box),
+          );
+          document.getElementById('words').append(row);
+        }
+        count();
+      }
+
+      fetch('referencia.json')
+        .then((response) => {
+          if (!response.ok) throw new Error(`respuesta ${response.status}`);
+          return response.json();
+        })
+        .then((reference) => {
+          document.getElementById('summary').textContent =
+            `Reunión ${reference.meeting}, ${clock(reference.durationSec)} min, ${reference.words.length} palabras.`;
+          showWords(reference);
+        })
+        .catch((cause) => {
+          const error = document.getElementById('error');
+          error.hidden = false;
+          error.textContent = `Falta el audio de referencia (${cause.message}). Genéralo con: npm run prepare:reference`;
+        });
+    </script>
+  </body>
+</html>
