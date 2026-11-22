@@ -67,7 +67,8 @@ en el icono de TRANSLATOR → «Opciones».
   más precisos, pero más lentos. Lo elegido se guarda en este ordenador y es Tiny mientras no se
   elija otro.
 - **«Descargar ahora»** baja el modelo del tamaño elegido sin esperar a la llamada. Muestra cuánto
-  lleva, se puede cancelar y, si no se completa, lo explica y ofrece «Reintentar».
+  lleva, se puede cancelar y, si no se completa, lo explica y ofrece «Reintentar». Si pasan 30
+  segundos sin que llegue nada del servidor, la da por no completada.
 - Mientras hay una transcripción en marcha no se puede cambiar el tamaño: hay que detenerla primero.
 
 ## Privacidad

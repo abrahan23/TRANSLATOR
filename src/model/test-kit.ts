@@ -11,10 +11,24 @@ export const FILES = [A, B, C];
 
 /** Lo que responde el servidor simulado a cada dirección. */
 export type Answer =
-  /** El fichero llega en trozos de esos tamaños. Con `cutAfter`, la conexión se corta tras ese número de trozos. */
-  | { chunks: number[]; cutAfter?: number }
+  /**
+   * El fichero llega en trozos de esos tamaños. Con `cutAfter`, la conexión se corta tras ese número de
+   * trozos. Con `everyMs`, cada trozo tarda ese tiempo en llegar.
+   */
+  | { chunks: number[]; cutAfter?: number; everyMs?: number }
   | { status: number }
   | 'unreachable';
+
+const abortError = () => new DOMException('Cancelada', 'AbortError');
+
+/** Una petición que no avanza: como en el navegador, solo termina si se cancela. */
+const stuck = (signal?: AbortSignal | null) =>
+  new Promise<never>((_, reject) => {
+    if (signal?.aborted) reject(abortError());
+    else signal?.addEventListener('abort', () => reject(abortError()), { once: true });
+  });
+
+const delay = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms));
 
 export const inChunks = (...chunks: number[]): Answer => ({ chunks });
 export const WHOLE: Record<string, Answer> = {
@@ -26,12 +40,11 @@ export const WHOLE: Record<string, Answer> = {
 export function fakeNetwork(answers: Record<string, Answer>) {
   const requests: { url: string; init: RequestInit }[] = [];
   let frozen = false;
-  const never = new Promise<never>(() => {});
   async function fetch(url: string, init: RequestInit): Promise<Response> {
-    if (frozen) return never;
-    requests.push({ url, init });
     const signal = init.signal;
-    if (signal?.aborted) throw new DOMException('Cancelada', 'AbortError');
+    if (frozen) return stuck(signal);
+    requests.push({ url, init });
+    if (signal?.aborted) throw abortError();
     const answer = answers[url] ?? 'unreachable';
     if (answer === 'unreachable') throw new TypeError('Failed to fetch');
     if ('status' in answer) return new Response('', { status: answer.status });
@@ -39,9 +52,10 @@ export function fakeNetwork(answers: Record<string, Answer>) {
     // Cada trozo sale cuando se pide: una cancelación o un corte se nota en la lectura siguiente.
     const body = new ReadableStream<Uint8Array<ArrayBuffer>>(
       {
-        pull(controller) {
-          if (frozen) return never;
-          if (signal?.aborted) controller.error(new DOMException('Cancelada', 'AbortError'));
+        async pull(controller) {
+          if (frozen) return stuck(signal);
+          if (answer.everyMs && sent < answer.chunks.length) await Promise.race([delay(answer.everyMs), stuck(signal)]);
+          if (signal?.aborted) controller.error(abortError());
           else if (sent === answer.cutAfter) controller.error(new TypeError('network error'));
           else if (sent === answer.chunks.length) controller.close();
           else controller.enqueue(new Uint8Array(answer.chunks[sent++] ?? 0));

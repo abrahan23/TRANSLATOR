@@ -577,17 +577,26 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
 
 ### BL-49 — Límite de tiempo propio cuando el servidor del modelo no contesta
 
-- **Estado:** Pendiente de decisión del usuario.
-- **Qué pasa hoy:** si el servidor de descarga no contesta, la descarga se queda en «Descargando: 0 de 51 MB»
-  hasta que Chrome se rinde. Medido el 2026-11-22 en un caso real: **150 s**. Después aparecen la explicación
-  y «Reintentar». Mientras tanto se puede cancelar. La descarga no tiene un límite de tiempo propio.
-- **Qué es:** que la extensión no espere tanto. Opciones:
-  - **A. Dejarlo como está.** Sin trabajo. Dos minutos y medio sin ninguna explicación.
-  - **B. Límite propio:** si pasan unos segundos sin recibir nada, la descarga se da por fallida, con la misma
-    explicación y «Reintentar». Vale también para una descarga que se queda parada a mitad. Riesgo: con una
-    conexión muy lenta puede fallar una descarga que habría terminado.
+- **Estado:** Decidido por el usuario el 2026-11-22: **opción B**, hecha en la tarea 2.5. A y C quedan aquí
+  como no elegidas.
+- **Qué pasaba:** si el servidor de descarga no contestaba, la descarga se quedaba en «Descargando: 0 de
+  51 MB» hasta que Chrome se rendía. Medido el 2026-11-22 en un caso real: **150 s**. Después aparecían la
+  explicación y «Reintentar». Mientras tanto se podía cancelar.
+- **Las opciones eran:**
+  - **A. Dejarlo como estaba.** Sin trabajo. Dos minutos y medio sin ninguna explicación.
+  - **B. Límite propio (elegida):** si pasan unos segundos sin recibir nada, la descarga se da por fallida,
+    con la misma explicación y «Reintentar». Vale también para una descarga que se queda parada a mitad.
+    Riesgo: con una conexión muy lenta puede fallar una descarga que habría terminado.
   - **C. Seguir esperando, con un aviso:** a los pocos segundos sin recibir nada, decir que el servidor tarda
     en responder. No falla por error, pero «Reintentar» sigue llegando a los 150 s y hay un estado más que
     pintar en el panel y en los ajustes.
-- **Dónde iría:** en el módulo de descarga (`src/model/`), así vale igual para el panel y para los ajustes.
-- **Cuándo retomarla:** antes de la tarea 4.2, que lleva la descarga al botón «Iniciar».
+- **Cómo ha quedado:** el límite es de 30 segundos sin recibir nada y vuelve a contar con cada trozo que
+  llega, así que una descarga lenta que avanza no falla. Está en el módulo de descarga (`src/model/`).
+  Medido el mismo día, con el servidor todavía sin contestar: los ajustes lo dicen a los **30 s**.
+- **Lo que queda abierto:**
+  - Los 30 segundos son una elección, no una medida. Si se ve que corta descargas que habrían terminado, se
+    sube.
+  - El panel todavía no usa este módulo: lo hará en la tarea 4.2. Hasta entonces, «Iniciar» con el servidor
+    sin contestar tarda 76 s (medido) y enseña el error de Chrome sin pulir.
+  - Con el panel y los ajustes esperando la misma descarga, cuando falla la primera página la otra lo
+    intenta por su cuenta (D4): esa segunda página puede tardar hasta 60 s en decirlo.

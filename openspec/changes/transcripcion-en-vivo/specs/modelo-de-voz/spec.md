@@ -123,6 +123,15 @@ descargado ni usarse para transcribir.
 - **WHEN** el usuario pulsa «Reintentar» en el panel con la conexión recuperada
 - **THEN** la descarga se completa y la transcripción empieza
 
+### Requirement: La descarga no espera indefinidamente al servidor
+Si durante una descarga pasan 30 segundos sin que llegue nada del servidor, la extensión SHALL darla por no
+completada, igual que cualquier otra descarga que no se completa. Mientras sigan llegando datos, aunque sea
+despacio, la descarga MUST NOT darse por fallida por ese motivo.
+
+#### Scenario: El servidor de descarga no contesta
+- **WHEN** durante una descarga pasan 30 segundos sin que llegue nada del servidor
+- **THEN** la descarga se da por no completada: se explica allí donde se mostraba el progreso y se ofrece «Reintentar»
+
 ### Requirement: Con el modelo guardado no hace falta conexión
 Una vez descargado, el modelo de un tamaño SHALL quedar guardado en el navegador. Las transcripciones
 siguientes con ese tamaño SHALL poder empezar sin conexión a internet, y el modelo MUST NOT volver a

@@ -1,7 +1,7 @@
 # Escenarios recorridos en Chrome
 
 Escenarios de las specs comprobados en un Chrome de verdad, con su resultado y su fecha. De momento están
-los de `modelo-de-voz` que se ven en la página de ajustes (tarea 2.4). Los demás se añaden en las tareas
+los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5). Los demás se añaden en las tareas
 3.4 y 4.7. Lo que no se ha podido recorrer está dicho.
 
 ## Cómo se ha recorrido
@@ -18,7 +18,7 @@ los de `modelo-de-voz` que se ven en la página de ajustes (tarea 2.4). Los dem�
 - **Modelo descargado:** se parte de una copia del perfil de la tarea 2.2, que tiene el Tiny descargado de
   verdad (7 ficheros, 51 441 771 bytes).
 - **El servidor del modelo no contestó.** El 2026-11-22, `download.moonshine.ai` no aceptó conexiones desde
-  la red de la prueba entre las 14:41 y las 14:58, como mínimo; otros sitios sí respondían. No se sabe si
+  la red de la prueba entre las 14:41 y las 17:46, como mínimo; otros sitios sí respondían. No se sabe si
   era el servidor o esa red. Por eso **no se ha recorrido ningún escenario en el que la descarga avanza**:
   están marcados como pendientes. A cambio, se ha medido qué ocurre cuando el servidor no contesta.
 
@@ -88,15 +88,28 @@ el fallo en la misma fila donde iba el progreso.
 | Caso | Resultado | Detalle |
 |---|---|---|
 | Sin conexión | Cumple | «Descargar ahora» sin conexión: en 0,05 s la fila pasa a «Descarga no completada», con «Reintentar» y el texto «No se ha podido descargar el modelo de voz: no hay conexión con el servidor de descarga. La primera vez hace falta conexión a internet.» «Reintentar», todavía sin conexión, termina igual. No queda nada guardado y el tamaño sigue sin figurar como descargado. |
-| El servidor no contesta (caso real) | Cumple, pero tarde | La fila se queda **150 s** en «Descargando: 0 de 51 MB», con «Cancelar». Pasado ese tiempo, que es lo que espera Chrome antes de rendirse, aparecen el mismo texto y «Reintentar». Qué hacer con esa espera: BL-49 de `BACKLOG.md`. |
 | La conexión se corta a mitad | **Pendiente** | Necesita el servidor del modelo. |
 | Reintento con la conexión recuperada | **Pendiente** | Necesita el servidor del modelo. |
 | Falta de espacio para guardar | Sin recorrer en Chrome | Solo con pruebas automáticas: el texto es «No se ha podido guardar el modelo de voz en este ordenador. Puede que falte espacio en el disco.» |
+
+## La descarga no espera indefinidamente al servidor
+
+Caso real: el servidor del modelo sin contestar (ver arriba). Recorrido el 2026-11-22 a las 17:47, con
+Chrome 157.0.8103.80, después de añadir el límite de 30 segundos (tarea 2.5).
+
+| Escenario | Resultado | Detalle |
+|---|---|---|
+| El servidor de descarga no contesta, en los ajustes | Cumple | La fila está **30 s** en «Descargando: 0 de 51 MB», con «Cancelar». A los 30 s pasa a «Descarga no completada», con «Reintentar» y el texto de falta de conexión con el servidor. «Reintentar» termina igual, otros 30 s después. Antes del límite eran 150 s, lo que espera Chrome antes de rendirse. |
+| «Cancelar» durante esa espera | Correcto | La fila vuelve a «Pendiente de descarga» al instante, y sigue así pasado el límite: no aparece ningún fallo después. No queda nada guardado ni ningún bloqueo tomado. |
+| El servidor de descarga no contesta, en el panel | **Pendiente (4.2)** | El panel todavía descarga por su cuenta, sin este límite: «Iniciar» se queda 76 s en «Preparando…» y termina con «No se ha podido empezar: Failed to fetch». |
+| Los datos dejan de llegar a mitad de un fichero | Sin recorrer en Chrome | Necesita el servidor del modelo. Solo con pruebas automáticas. |
+| Una descarga lenta que sigue avanzando no falla | Sin recorrer en Chrome | Necesita el servidor del modelo. Solo con pruebas automáticas. |
 
 ## Pendiente
 
 1. Con el servidor del modelo disponible: «Descargar antes de la llamada», «Cancelar en los ajustes» a mitad
    de descarga, «La conexión se corta a mitad» y «Reintento con la conexión recuperada».
 2. Con la tarea 3.3: repetir los dos escenarios de captura con una captura de verdad.
-3. Con la tarea 4.2: la parte de captura de «Elegir otro tamaño» y de «Reinicio del navegador».
+3. Con la tarea 4.2: la parte de captura de «Elegir otro tamaño» y de «Reinicio del navegador», y «El
+   servidor de descarga no contesta» en el panel.
 4. En un Chrome con ventana: abrir los ajustes con el clic derecho en el icono → «Opciones».

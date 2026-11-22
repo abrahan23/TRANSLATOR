@@ -17,8 +17,9 @@ export interface DownloadOptions {
 }
 
 /**
- * Por qué no se ha completado una descarga: no se ha podido conectar con el servidor, el servidor
- * ha respondido con un error, el fichero no ha llegado entero o no se ha podido guardar.
+ * Por qué no se ha completado una descarga: no se ha podido conectar con el servidor (o no ha
+ * contestado a tiempo), el servidor ha respondido con un error, el fichero no ha llegado entero (o
+ * han dejado de llegar datos) o no se ha podido guardar.
  */
 export type DownloadFailure = 'unreachable' | 'server' | 'interrupted' | 'storage';
 
@@ -57,6 +58,12 @@ const browserEnvironment: ModelEnvironment = {
   filesOf: modelFiles,
 };
 
+/**
+ * Tiempo máximo sin recibir nada del servidor. Pasado ese tiempo la descarga se da por fallida, en
+ * vez de esperar a que se rinda el navegador, que tarda minutos (design.md, D3).
+ */
+export const STALL_LIMIT_MS = 30_000;
+
 const CANCELLED: DownloadResult = { status: 'cancelled' };
 
 function failed(reason: DownloadFailure, detail: string): DownloadResult {
@@ -67,6 +74,26 @@ function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
 }
 
+/** Vigila que sigan llegando datos del servidor: si pasa el límite sin que llegue nada, corta la petición. */
+function watchStall(signal: AbortSignal | undefined) {
+  const stall = new AbortController();
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const stop = () => clearTimeout(timer);
+  /** Acaba de llegar algo: el límite vuelve a contar desde ahora. */
+  const alive = () => {
+    stop();
+    timer = setTimeout(() => stall.abort(), STALL_LIMIT_MS);
+  };
+  alive();
+  return {
+    /** Se cancela si lo pide quien descarga o si el servidor deja de responder. */
+    signal: signal ? AbortSignal.any([signal, stall.signal]) : stall.signal,
+    stalled: () => stall.signal.aborted,
+    alive,
+    stop,
+  };
+}
+
 export function createModelStore(environment: ModelEnvironment = browserEnvironment): ModelStore {
   /** Baja un fichero entero a memoria. Devuelve sus trozos, o por qué no ha llegado. */
   async function fetchFile(
@@ -74,36 +101,47 @@ export function createModelStore(environment: ModelEnvironment = browserEnvironm
     signal: AbortSignal | undefined,
     onBytes: (received: number) => void,
   ): Promise<Uint8Array<ArrayBuffer>[] | DownloadResult> {
-    let response: Response;
+    const watch = watchStall(signal);
+    const limit = `${STALL_LIMIT_MS / 1000} s`;
     try {
-      // Sin la caché HTTP del navegador: descargar es bajar el fichero del servidor.
-      response = await environment.fetch(file.url, { signal, cache: 'no-store' });
-    } catch (cause) {
-      return signal?.aborted ? CANCELLED : failed('unreachable', `${file.name}: ${describe(cause)}`);
-    }
-    if (!response.ok || !response.body) return failed('server', `${file.name}: respuesta ${response.status}`);
-
-    const reader = response.body.getReader();
-    const chunks: Uint8Array<ArrayBuffer>[] = [];
-    let received = 0;
-    try {
-      for (;;) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        chunks.push(value);
-        received += value.byteLength;
-        // Si llega más de lo esperado, no es el fichero de la tabla: no hace falta bajarlo entero.
-        if (received > file.bytes) break;
-        onBytes(received);
+      let response: Response;
+      try {
+        // Sin la caché HTTP del navegador: descargar es bajar el fichero del servidor.
+        response = await environment.fetch(file.url, { signal: watch.signal, cache: 'no-store' });
+      } catch (cause) {
+        if (signal?.aborted) return CANCELLED;
+        const detail = watch.stalled() ? `el servidor no ha contestado en ${limit}` : describe(cause);
+        return failed('unreachable', `${file.name}: ${detail}`);
       }
-    } catch (cause) {
-      return signal?.aborted ? CANCELLED : failed('interrupted', `${file.name}: ${describe(cause)}`);
+      if (!response.ok || !response.body) return failed('server', `${file.name}: respuesta ${response.status}`);
+
+      const reader = response.body.getReader();
+      const chunks: Uint8Array<ArrayBuffer>[] = [];
+      let received = 0;
+      try {
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          watch.alive();
+          chunks.push(value);
+          received += value.byteLength;
+          // Si llega más de lo esperado, no es el fichero de la tabla: no hace falta bajarlo entero.
+          if (received > file.bytes) break;
+          onBytes(received);
+        }
+      } catch (cause) {
+        if (signal?.aborted) return CANCELLED;
+        const detail = watch.stalled() ? `${limit} sin recibir datos` : describe(cause);
+        return failed('interrupted', `${file.name}: ${detail}`);
+      }
+      if (received !== file.bytes) {
+        void reader.cancel().catch(() => {});
+        return failed('interrupted', `${file.name}: han llegado ${received} bytes y se esperaban ${file.bytes}`);
+      }
+      return chunks;
+    } finally {
+      watch.stop();
     }
-    if (received !== file.bytes) {
-      void reader.cancel().catch(() => {});
-      return failed('interrupted', `${file.name}: han llegado ${received} bytes y se esperaban ${file.bytes}`);
-    }
-    return chunks;
   }
 
   async function download(size: ModelSize, options: DownloadOptions = {}): Promise<DownloadResult> {

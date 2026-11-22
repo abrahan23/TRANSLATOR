@@ -179,6 +179,12 @@ Un módulo propio (`src/model/`) se encarga de todo lo que las specs piden del m
   2026-11-19: suman 51.441.771, 165.489.086 y 304.690.919 bytes, lo mismo que se midió en las pruebas.
 - **Descarga:** baja los ficheros uno a uno. Como conoce el total, enseña cuánto lleva descargado. Se puede
   cancelar en cualquier momento.
+- **Límite de tiempo propio:** si pasan 30 segundos sin que llegue nada del servidor, la descarga se da por
+  no completada, en vez de esperar a que se rinda Chrome (150 s medidos el 2026-11-22). El límite cuenta
+  en cada fichero y vuelve a empezar con cada trozo que llega: una conexión lenta que sigue avanzando no
+  falla. Si el servidor no llegó a contestar, se explica como falta de conexión; si los datos dejaron de
+  llegar a mitad, como descarga cortada. «Cancelar» sigue siendo una cancelación. Los 30 segundos son una
+  elección, no una medida (BL-49).
 - **Guardado:** cada fichero se guarda solo cuando ha llegado entero y con el tamaño esperado, en la caché
   que usa Moonshine (`moonshine-models-v1`) y con su dirección como clave.
 - **Estado:** un tamaño está «descargado» cuando sus 7 ficheros están en esa caché. Es lo que consultan los
