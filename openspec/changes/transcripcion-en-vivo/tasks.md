@@ -14,7 +14,7 @@
 
 ## 2. Modelo de voz
 
-- [ ] 2.1 Módulo `src/model/` (D3): tabla fija de los tres tamaños, descarga cancelable con progreso sobre el total, comprobación del tamaño de cada fichero, guardado solo de ficheros completos, estado «descargado» y «Volver a descargar». Verificación: pruebas con red y caché simuladas (progreso, cancelación, tamaño incorrecto, corte a mitad, reintento, modelo a medias que no cuenta) y prueba de que el paquete instalado conserva el nombre de la caché y las direcciones de la tabla.
+- [x] 2.1 Módulo `src/model/` (D3): tabla fija de los tres tamaños, descarga cancelable con progreso sobre el total, comprobación del tamaño de cada fichero, guardado solo de ficheros completos, estado «descargado» y «Volver a descargar». Verificación: pruebas con red y caché simuladas (progreso, cancelación, tamaño incorrecto, corte a mitad, reintento, modelo a medias que no cuenta) y prueba de que el paquete instalado conserva el nombre de la caché y las direcciones de la tabla.
 - [ ] 2.2 Descarga única compartida (D4): un bloqueo por tamaño y un canal de avisos; la página que espera muestra el progreso, puede cancelar y continúa la descarga si la otra se cierra. Verificación: pruebas con bloqueo y canal simulados; en Chrome, «Descargar ahora» e «Iniciar» a la vez dan una sola descarga.
 - [ ] 2.3 Almacén de ajustes (`src/settings/`): tamaño elegido en `storage.local`, Tiny si no hay ninguno, aviso de cambios. Verificación: pruebas con el navegador simulado, incluida una que comprueba que nada se escribe en `storage.sync`.
 - [ ] 2.4 Página de ajustes: los tres tamaños con lo que ocupa cada uno, aviso de «más preciso, más lento» en Small y Medium, descargado o pendiente según la caché, «Descargar ahora» con progreso, «Cancelar» y «Reintentar», y selector desactivado durante una captura. Crear `docs/qa-manual.md` con los escenarios de `modelo-de-voz` que se ven en los ajustes. Verificación: esos escenarios recorridos en Chrome, con resultado y fecha.
@@ -46,7 +46,7 @@
 
 ## Workflow follow-up
 
-- Ningún commit sin el ok del usuario. El repositorio no tiene commits ni remoto.
+- Ningún commit ni push sin el ok del usuario. El repositorio es público (`github.com/abrahan23/TRANSLATOR`): antes de cada push se revisa que no lleve secretos ni datos internos.
 - Lo que se instala o se descarga (dependencias de npm, modelo de voz, audio del corpus AMI) se anuncia antes de hacerlo.
 - Snyk no aplica mientras no haya un despliegue real: la extensión se carga en local.
 - Archivar el change con `openspec-archive-change` cuando el usuario dé por buena la comprobación de integración.
