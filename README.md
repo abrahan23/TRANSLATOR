@@ -113,6 +113,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `src/audio/` | Captura del audio de la pestaña. |
 | `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado y descarga única compartida entre el panel y los ajustes. El panel todavía no lo usa. |
 | `src/panel/` | Pestaña objetivo y texto del panel. |
+| `src/settings/` | Tamaño de modelo elegido: se guarda en este ordenador y es Tiny mientras no se elija otro. El panel todavía no lo usa. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
 | `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. |
 | `docs/` | Resultados de las comprobaciones y mediciones. |
