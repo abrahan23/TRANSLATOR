@@ -12,6 +12,7 @@ export interface DownloadProgress {
 export interface DownloadOptions {
   /** Para cancelar la descarga en cualquier momento. */
   signal?: AbortSignal;
+  /** El primer aviso llega antes de pedir nada a la red, con lo que ya hay guardado. */
   onProgress?: (progress: DownloadProgress) => void;
 }
 

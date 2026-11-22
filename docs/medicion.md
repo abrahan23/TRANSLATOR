@@ -1,7 +1,7 @@
 # Comprobaciones y mediciones
 
-Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo`. Cada cifra sale de una ejecución
-real. Lo que no se ha podido comprobar está dicho.
+Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de la tarea 2.2. Cada cifra sale
+de una ejecución real. Lo que no se ha podido comprobar está dicho.
 
 ## Cómo se ha comprobado
 
@@ -217,6 +217,35 @@ pasada 5 anotó la hora de cada cierre:
   las líneas pueden ser distintas: está sin medir.
 - No se ha medido cómo traduce Chrome un trozo de frase.
 - Sin decisión: se toma en el change `traduccion-en-vivo`.
+
+## 2.2 — Descarga compartida entre dos páginas
+
+Fecha: 2026-11-22. El mismo Chrome sin ventana, con un perfil temporal vacío y la extensión compilada. Las
+dos páginas son el panel lateral y una página de la extensión abierta en una pestaña de otra ventana (la
+de ajustes aún no existe; tendrá el mismo origen). Cada una pide Tiny al módulo `src/model/shared.ts`. Las
+peticiones al servidor del modelo se cuentan con el registro de red de cada página. En los tres últimos
+casos la descarga va frenada a 4 MB/s, para poder actuar a mitad.
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| Las dos piden Tiny a la vez | Una sola descarga | La primera hace las 7 peticiones y termina en 8,5 s. La segunda espera con el bloqueo pendiente, no hace ninguna petición, muestra los 1 246 avisos de progreso de la primera (nunca hacia atrás) y termina en 8,7 s. Quedan los 7 ficheros (51 441 771 bytes) y ningún bloqueo. |
+| Cancela la que espera | Se detienen las dos | Las dos terminan como canceladas 8 ms después. La que descargaba había pedido 3 ficheros: quedan guardados los 2 completos (2 607 208 bytes) y el modelo no cuenta como descargado. |
+| Cancela la que descarga | Se detienen las dos | En 1 ms. La que esperaba no toma el relevo: ninguna petición. |
+| Se cierra la que descarga | La otra continúa | La que esperaba recibe el bloqueo, pide solo los 5 ficheros que faltan y termina. Quedan los 7 ficheros y ningún bloqueo. |
+
+Matices:
+
+- Se ha probado llamando al módulo desde las dos páginas, con milisegundos de diferencia. Los botones
+  «Descargar ahora» e «Iniciar» todavía no lo usan (tareas 2.4 y 4.2): con ellos se repite en la 4.2.
+- Al cerrarse la página que descarga, el progreso de la otra retrocede una vez, hasta el último fichero
+  completo. El fichero que iba a medias se pierde y se baja de nuevo.
+- **Para las tareas 2.4 y 4.2:** llega un aviso de progreso por cada trozo recibido. Sin freno fueron unos
+  146 por segundo. Con la red frenada los trozos son más pequeños y llegaron entre 1 750 y 2 000 por
+  segundo. La interfaz no debe repintar con cada aviso.
+- Tras una descarga compartida, cada página recibe dos avisos de que lo guardado ha cambiado, uno por cada
+  página que termina. El segundo solo provoca una lectura de más.
+- Cada caso se ha ejecutado una vez. Las 23 pruebas automáticas de `src/model/shared.test.ts` cubren estos
+  casos y sus variantes con bloqueo, canal, red y caché simulados.
 
 ## Pendiente en un Chrome con ventana
 

@@ -111,7 +111,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `entrypoints/sidepanel/` | Página del panel (React). |
 | `src/engine/` | Interfaz del motor de transcripción y adaptador de Moonshine. |
 | `src/audio/` | Captura del audio de la pestaña. |
-| `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable y qué hay guardado. El panel todavía no lo usa. |
+| `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado y descarga única compartida entre el panel y los ajustes. El panel todavía no lo usa. |
 | `src/panel/` | Pestaña objetivo y texto del panel. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
 | `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. |

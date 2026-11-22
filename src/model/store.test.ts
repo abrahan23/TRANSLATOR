@@ -1,66 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ModelFile } from './catalog';
-import { createModelStore, type DownloadProgress, type ModelCache } from './store';
-
-// Un modelo de prueba de 60 bytes en tres ficheros, en lugar de los 51 MB de Tiny.
-const A: ModelFile = { name: 'a.ort', url: 'https://modelos.test/a.ort', bytes: 10 };
-const B: ModelFile = { name: 'b.ort', url: 'https://modelos.test/b.ort', bytes: 20 };
-const C: ModelFile = { name: 'c.bin', url: 'https://modelos.test/c.bin', bytes: 30 };
-const FILES = [A, B, C];
-
-/** Lo que responde el servidor simulado a cada dirección. */
-type Answer =
-  /** El fichero llega en trozos de esos tamaños. Con `cutAfter`, la conexión se corta tras ese número de trozos. */
-  | { chunks: number[]; cutAfter?: number }
-  | { status: number }
-  | 'unreachable';
-
-const inChunks = (...chunks: number[]): Answer => ({ chunks });
-const WHOLE: Record<string, Answer> = {
-  [A.url]: inChunks(4, 6),
-  [B.url]: inChunks(20),
-  [C.url]: inChunks(10, 10, 10),
-};
-
-function fakeNetwork(answers: Record<string, Answer>) {
-  const requests: { url: string; init: RequestInit }[] = [];
-  async function fetch(url: string, init: RequestInit): Promise<Response> {
-    requests.push({ url, init });
-    const signal = init.signal;
-    if (signal?.aborted) throw new DOMException('Cancelada', 'AbortError');
-    const answer = answers[url] ?? 'unreachable';
-    if (answer === 'unreachable') throw new TypeError('Failed to fetch');
-    if ('status' in answer) return new Response('', { status: answer.status });
-    let sent = 0;
-    // Cada trozo sale cuando se pide: una cancelación o un corte se nota en la lectura siguiente.
-    const body = new ReadableStream<Uint8Array<ArrayBuffer>>(
-      {
-        pull(controller) {
-          if (signal?.aborted) controller.error(new DOMException('Cancelada', 'AbortError'));
-          else if (sent === answer.cutAfter) controller.error(new TypeError('network error'));
-          else if (sent === answer.chunks.length) controller.close();
-          else controller.enqueue(new Uint8Array(answer.chunks[sent++] ?? 0));
-        },
-      },
-      { highWaterMark: 0 },
-    );
-    return new Response(body);
-  }
-  return { requests, fetch };
-}
-
-/** Caché simulada: anota cuántos bytes se han guardado con cada dirección. */
-function fakeCache(stored: ModelFile[]) {
-  const entries = new Map(stored.map((file) => [file.url, file.bytes]));
-  const cache: ModelCache = {
-    match: async (url) => (entries.has(url) ? new Response() : undefined),
-    put: async (url, response) => {
-      entries.set(url, (await response.arrayBuffer()).byteLength);
-    },
-    delete: async (url) => entries.delete(url),
-  };
-  return { entries, cache };
-}
+import { createModelStore, type DownloadProgress } from './store';
+import { A, B, C, FILES, WHOLE, fakeCache, fakeNetwork, inChunks, saved, urls, type Answer } from './test-kit';
 
 function setup(options: { stored?: ModelFile[]; answers?: Record<string, Answer> } = {}) {
   const answers = { ...WHOLE, ...options.answers };
@@ -83,9 +24,6 @@ function setup(options: { stored?: ModelFile[]; answers?: Record<string, Answer>
     requests,
   };
 }
-
-const urls = (...files: ModelFile[]) => files.map((file) => file.url);
-const saved = (...files: ModelFile[]) => new Map(files.map((file) => [file.url, file.bytes]));
 
 describe('estado «descargado»', () => {
   it('sin nada guardado, el modelo no está descargado', async () => {
