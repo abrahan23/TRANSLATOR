@@ -443,10 +443,15 @@ La misma medición dice cuánto se queda corta la estimación en vivo. La difere
 - **Captura única:** al empezar, el panel toma un bloqueo del navegador (Web Locks) y lo mantiene mientras
   dura la captura. Si otra ventana ya lo tiene, el panel no ofrece «Iniciar» y explica por qué. El navegador
   libera el bloqueo aunque la página se cierre de golpe, así que no puede quedar una captura «fantasma».
-- Los ajustes saben si hay una captura por ese mismo bloqueo: lo consultan al abrirse y esperan a que se
-  libere. Por eso el selector de tamaño se desactiva y se vuelve a activar sin recargar la página.
-- Los ajustes leen qué tamaños están descargados directamente de la caché de modelos (D3), al abrirse y cada
-  vez que el canal de avisos (D4) anuncia un cambio.
+- Los ajustes son una página propia que se abre en una pestaña: con el clic derecho en el icono → «Opciones»
+  o con el enlace «Ajustes» del panel.
+- Los ajustes saben si hay una captura por ese mismo bloqueo (`translator-capture`): miran si alguien lo tiene
+  al abrirse, una vez por segundo y justo antes de guardar un tamaño nuevo. Nunca lo piden, para no estorbar a
+  quien captura. Por eso el selector de tamaño se desactiva y se vuelve a activar sin recargar la página,
+  también si la captura empieza con los ajustes ya abiertos.
+- Los ajustes leen qué tamaños están descargados directamente de la caché de modelos (D3): al abrirse, cada
+  vez que el canal de avisos (D4) anuncia un cambio y cada vez que su pestaña pasa a verse o recibe el foco,
+  porque lo guardado se puede borrar sin que nadie avise.
 - Hay un único punto de registro para diagnóstico. Anota tipos de evento, recuentos y duraciones; nunca texto
   transcrito.
 

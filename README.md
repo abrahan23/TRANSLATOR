@@ -13,7 +13,9 @@ Versión mínima, para comprobar que la pieza principal funciona de punta a punt
 
 - Transcribe el audio de **una pestaña** (lo que dicen los demás), **solo en inglés**.
 - Usa el modelo de voz más pequeño de Moonshine (Tiny).
-- Todavía no hay traducción, ni contexto técnico, ni página de ajustes, ni captura del micrófono.
+- Hay una página de ajustes para elegir el tamaño del modelo y descargarlo antes de la llamada. El
+  panel todavía no usa el tamaño elegido: transcribe siempre con Tiny.
+- Todavía no hay traducción, ni contexto técnico, ni captura del micrófono.
 - Los mensajes de error son los que da Chrome, sin pulir.
 
 Qué viene después y en qué orden: [openspec/changes/transcripcion-en-vivo/tasks.md](openspec/changes/transcripcion-en-vivo/tasks.md).
@@ -55,6 +57,18 @@ Después de volver a compilar, pulsa el botón de recargar de la extensión en `
 
 El clic en el icono es lo que da permiso a la extensión sobre esa pestaña: si quieres transcribir
 otra, haz clic en el icono estando en ella.
+
+## Ajustes
+
+Se abren en una pestaña propia, de dos formas: con el enlace «Ajustes» del panel o con el clic derecho
+en el icono de TRANSLATOR → «Opciones».
+
+- **Tamaño del modelo de voz:** Tiny (51 MB), Small (165 MB) o Medium (305 MB). Los dos mayores son
+  más precisos, pero más lentos. Lo elegido se guarda en este ordenador y es Tiny mientras no se
+  elija otro.
+- **«Descargar ahora»** baja el modelo del tamaño elegido sin esperar a la llamada. Muestra cuánto
+  lleva, se puede cancelar y, si no se completa, lo explica y ofrece «Reintentar».
+- Mientras hay una transcripción en marcha no se puede cambiar el tamaño: hay que detenerla primero.
 
 ## Privacidad
 
@@ -109,14 +123,15 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 |---|---|
 | `entrypoints/background.ts` | Service worker: clic en el icono → abre el panel y anota la pestaña. |
 | `entrypoints/sidepanel/` | Página del panel (React). |
+| `entrypoints/options/` | Página de ajustes (React). Se abre en su propia pestaña. |
 | `src/engine/` | Interfaz del motor de transcripción y adaptador de Moonshine. |
-| `src/audio/` | Captura del audio de la pestaña. |
-| `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado y descarga única compartida entre el panel y los ajustes. El panel todavía no lo usa. |
+| `src/audio/` | Captura del audio de la pestaña, y cómo saben los ajustes si hay una captura en marcha. |
+| `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado, descarga única compartida entre el panel y los ajustes, y textos de una descarga que no se completa. Lo usan los ajustes; el panel, todavía no. |
 | `src/panel/` | Pestaña objetivo y texto del panel. |
-| `src/settings/` | Tamaño de modelo elegido: se guarda en este ordenador y es Tiny mientras no se elija otro. El panel todavía no lo usa. |
+| `src/settings/` | Tamaño de modelo elegido (se guarda en este ordenador y es Tiny mientras no se elija otro) y lo que muestra la página de ajustes en cada momento. El panel todavía no usa el tamaño elegido. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
 | `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. |
-| `docs/` | Resultados de las comprobaciones y mediciones. |
+| `docs/` | Resultados de las comprobaciones y mediciones ([medicion.md](docs/medicion.md)) y lista de escenarios recorridos a mano en Chrome ([qa-manual.md](docs/qa-manual.md)). |
 | `public/capture-worklet.js` | Procesador de audio que agrupa la captura en bloques. |
 | `public/moonshine/` | Copia parcheada de Moonshine. Se genera al compilar; no está en git. |
 | `scripts/` | Preparación de Moonshine y sus pruebas. |

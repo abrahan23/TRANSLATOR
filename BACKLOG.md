@@ -574,3 +574,20 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
 - **No elegido tampoco:** descargar solo al pulsar «Iniciar», sin el botón de los ajustes. Es lo más simple,
   pero la primera llamada con cada tamaño empieza siempre con una espera (8 o 9 s con Tiny, 18 con Small y 32
   con Medium en la conexión de la prueba).
+
+### BL-49 — Límite de tiempo propio cuando el servidor del modelo no contesta
+
+- **Estado:** Pendiente de decisión del usuario.
+- **Qué pasa hoy:** si el servidor de descarga no contesta, la descarga se queda en «Descargando: 0 de 51 MB»
+  hasta que Chrome se rinde. Medido el 2026-11-22 en un caso real: **150 s**. Después aparecen la explicación
+  y «Reintentar». Mientras tanto se puede cancelar. La descarga no tiene un límite de tiempo propio.
+- **Qué es:** que la extensión no espere tanto. Opciones:
+  - **A. Dejarlo como está.** Sin trabajo. Dos minutos y medio sin ninguna explicación.
+  - **B. Límite propio:** si pasan unos segundos sin recibir nada, la descarga se da por fallida, con la misma
+    explicación y «Reintentar». Vale también para una descarga que se queda parada a mitad. Riesgo: con una
+    conexión muy lenta puede fallar una descarga que habría terminado.
+  - **C. Seguir esperando, con un aviso:** a los pocos segundos sin recibir nada, decir que el servidor tarda
+    en responder. No falla por error, pero «Reintentar» sigue llegando a los 150 s y hay un estado más que
+    pintar en el panel y en los ajustes.
+- **Dónde iría:** en el módulo de descarga (`src/model/`), así vale igual para el panel y para los ajustes.
+- **Cuándo retomarla:** antes de la tarea 4.2, que lleva la descarga al botón «Iniciar».

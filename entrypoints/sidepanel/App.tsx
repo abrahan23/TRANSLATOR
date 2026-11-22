@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { browser } from 'wxt/browser';
 import { startTabCapture, type TabCapture } from '@/src/audio/tab-capture';
 import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
@@ -152,7 +153,12 @@ export default function App() {
   return (
     <main className="panel">
       <header className="panel-header">
-        <h1>TRANSLATOR</h1>
+        <div className="title-row">
+          <h1>TRANSLATOR</h1>
+          <button type="button" className="settings-link" onClick={() => void browser.runtime.openOptionsPage()}>
+            Ajustes
+          </button>
+        </div>
         <p className="target">
           {targetTab
             ? `Pestaña: ${targetTab.title || 'sin título'}`

@@ -36,6 +36,10 @@ describe('manifest generado', () => {
     expect(manifest.side_panel.default_path).toBe('sidepanel.html');
     expect(manifest.background.service_worker).toBeTypeOf('string');
   });
+
+  it('declara la página de ajustes, que se abre en su propia pestaña', () => {
+    expect(manifest.options_ui).toEqual({ open_in_tab: true, page: 'options.html' });
+  });
 });
 
 describe('Moonshine dentro de la extensión compilada', () => {

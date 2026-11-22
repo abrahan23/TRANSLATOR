@@ -54,6 +54,27 @@ body {
   margin: 6px 0 0;
 }
 
+.title-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* Abre la página de ajustes en su propia pestaña. */
+.settings-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.settings-link:hover {
+  text-decoration: underline;
+}
+
 .target {
   color: var(--muted);
   overflow-wrap: anywhere;
