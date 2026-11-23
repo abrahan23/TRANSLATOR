@@ -459,6 +459,41 @@ Chrome 157) con audio sintético.
   incidencia sobre el tema.
 - **Cuándo retomarla:** cuando la primera versión funcione y haya un caso concreto que enseñarles.
 
+### BL-50 — Límite de tiempo en la carga del motor
+
+- **Estado:** Pendiente. Detectado en la tarea 3.1 (2026-11-22).
+- **Qué es:** las órdenes al worker de Moonshine se dan por fallidas si no reciben respuesta en 15 segundos,
+  menos la carga del modelo. Hoy esa carga incluye la descarga, que puede tardar más, así que no lleva
+  límite: si el worker muriera mientras carga, el panel se quedaría en «Preparando» (visto en el código, sin
+  probar).
+- **Cuándo retomarla:** en la tarea 4.2. Cuando la descarga pase al módulo propio (`src/model/`), la carga
+  ya no usa la red y puede llevar el mismo límite.
+
+### BL-51 — Quitar la frase de calentamiento si no aporta
+
+- **Estado:** Pendiente. El calentamiento está hecho, como pide el diseño (D5).
+- **Qué se ha visto:** el diseño lo incluyó porque la primera frase llegaba tarde (≈ 1,6 s). Medido en la
+  tarea 3.1 con Tiny, ese retraso no aparece: el calentamiento adelanta el primer texto 0,1 s como mucho,
+  añade entre 0,07 y 0,25 s a «Preparando» y cambia el reconocimiento de los primeros segundos
+  (`docs/medicion.md`, 3.1).
+- **A favor de quitarlo:** menos código, un fichero menos en la extensión y un arranque algo más corto.
+- **En contra:** con Small y Medium está sin medir, y son los que más tardan.
+- **Cuándo retomarla:** en la tarea 5.2, al medir con los tres tamaños. Quitarlo es no pasar la opción
+  `warmUp` al crear el motor.
+
+### BL-52 — «Detener» con el motor colgado tarda 15 segundos y no avisa
+
+- **Estado:** Pendiente. Detectado en la tarea 3.1 (2026-11-22). Es comportamiento del panel.
+- **Qué pasa:** si el motor deja de responder y el usuario pulsa «Detener» antes de que el panel lo haya
+  detectado, el panel se queda en «Deteniendo…» hasta 15 segundos. Después vuelve a «Iniciar» con el texto
+  intacto, pero sin decir que el motor había fallado y que el final puede faltar.
+- **Opciones:**
+  - **A. Dejarlo así.** Sin trabajo. El caso es raro y no se pierde el texto ya escrito.
+  - **B. Mostrar el mensaje de fallo también en ese caso.** Poco trabajo. La espera sigue.
+  - **C. Mensaje y espera más corta al detener** (por ejemplo, 3 segundos). Riesgo: con un ordenador muy
+    cargado, una última pasada lenta se daría por fallida y la última línea quedaría sin su corrección final.
+- **Cuándo retomarla:** en el grupo 4, al construir los estados y mensajes del panel.
+
 ## Tamaño del modelo de voz (B9)
 
 ### BL-35 — Ajuste automático del tamaño según el retardo

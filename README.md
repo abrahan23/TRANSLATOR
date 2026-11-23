@@ -125,18 +125,19 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `entrypoints/background.ts` | Service worker: clic en el icono → abre el panel y anota la pestaña. |
 | `entrypoints/sidepanel/` | Página del panel (React). |
 | `entrypoints/options/` | Página de ajustes (React). Se abre en su propia pestaña. |
-| `src/engine/` | Interfaz del motor de transcripción y adaptador de Moonshine. |
+| `src/engine/` | Interfaz del motor de transcripción, adaptador de Moonshine y lectura de la frase de calentamiento. Las pruebas del adaptador usan eventos reales de Moonshine guardados en `recorded-run.json`. |
 | `src/audio/` | Captura del audio de la pestaña, y cómo saben los ajustes si hay una captura en marcha. |
 | `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado, descarga única compartida entre el panel y los ajustes, y textos de una descarga que no se completa. Lo usan los ajustes; el panel, todavía no. |
 | `src/panel/` | Pestaña objetivo y texto del panel. |
 | `src/settings/` | Tamaño de modelo elegido (se guarda en este ordenador y es Tiny mientras no se elija otro) y lo que muestra la página de ajustes en cada momento. El panel todavía no usa el tamaño elegido. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
-| `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. |
+| `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. También el recorte de la frase de calentamiento. |
 | `docs/` | Resultados de las comprobaciones y mediciones ([medicion.md](docs/medicion.md)) y lista de escenarios recorridos a mano en Chrome ([qa-manual.md](docs/qa-manual.md)). |
 | `public/capture-worklet.js` | Procesador de audio que agrupa la captura en bloques. |
+| `public/warm-up.wav` | Frase de calentamiento: 2 segundos de voz que el motor transcribe al cargarse, antes de la captura. Su texto se descarta. `public/warm-up.txt` dice de dónde sale y con qué licencia. |
 | `public/moonshine/` | Copia parcheada de Moonshine. Se genera al compilar; no está en git. |
 | `scripts/` | Preparación de Moonshine y sus pruebas. |
-| `tests/build/` | Pruebas sobre la extensión compilada (manifest y parche). |
+| `tests/build/` | Pruebas sobre la extensión compilada (manifest, parche y frase de calentamiento). |
 | `openspec/` | Specs, diseño y tareas (el proyecto se desarrolla con OpenSpec). |
 | `BACKLOG.md` | Opciones descartadas o aplazadas, con su motivo. |
 
@@ -151,6 +152,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `npm run test:unit` | Ejecuta las pruebas que no necesitan compilar. |
 | `npm run dev` | Modo de desarrollo de WXT con recarga en caliente. Todavía sin comprobar con esta extensión. |
 | `npm run prepare:reference` | Baja y prepara el audio de referencia de la medición. |
+| `npm run prepare:warm-up` | Vuelve a recortar la frase de calentamiento del audio de referencia. Solo hace falta si se quiere cambiar: el recorte ya está en el repositorio. |
 | `npm run serve:reference` | Sirve en este ordenador la página que reproduce ese audio. |
 | `npm run compare:delay` | Compara una medición con el audio de referencia y da el retardo. |
 
@@ -163,4 +165,8 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
   (Universidad de Edimburgo), licencia [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
   Se usa la reunión ES2002a (mezcla de los micrófonos de diadema) y sus anotaciones de palabras
   (`ami_public_manual_1.6.2.zip`). Cambios: se recorta un tramo de 5 minutos y se reúnen en una lista
-  las palabras de los cuatro hablantes. Ni el audio ni las anotaciones están en este repositorio.
+  las palabras de los cuatro hablantes. Ese tramo y las anotaciones no están en este repositorio.
+- Del mismo corpus y con la misma licencia sí están en el repositorio dos cosas: un recorte de 2
+  segundos de esa reunión (`public/warm-up.wav`, del segundo 757,1 al 759,1, sin más cambios), que va
+  dentro de la extensión, y el texto que Moonshine transcribió de ese recorte y de los primeros 24,5
+  segundos del tramo (`src/engine/moonshine/recorded-run.json`), que solo usan las pruebas.

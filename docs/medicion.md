@@ -1,7 +1,7 @@
 # Comprobaciones y mediciones
 
-Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de la tarea 2.2. Cada cifra sale
-de una ejecución real. Lo que no se ha podido comprobar está dicho.
+Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de las tareas 2.2 y 3.1. Cada
+cifra sale de una ejecución real. Lo que no se ha podido comprobar está dicho.
 
 ## Cómo se ha comprobado
 
@@ -246,6 +246,57 @@ Matices:
   página que termina. El segundo solo provoca una lectura de más.
 - Cada caso se ha ejecutado una vez. Las 23 pruebas automáticas de `src/model/shared.test.ts` cubren estos
   casos y sus variantes con bloqueo, canal, red y caché simulados.
+
+## 3.1 — El adaptador del motor
+
+Fecha: 2026-11-22. Chrome 157.0.8103.80 sin ventana, con una copia de un perfil que ya tiene Tiny guardado.
+No se descarga nada. Dos montajes:
+
+- **Laboratorio:** una página de la extensión habla directamente con el worker de Moonshine y le entrega
+  el audio de referencia (1.6) en bloques de 50 ms, a ritmo real. De aquí salen los eventos que usan las
+  pruebas (`src/engine/moonshine/recorded-run.json`).
+- **Panel:** la extensión compilada, con «Iniciar» y «Detener» pulsados en el panel lateral y las ocho
+  frases sintéticas sonando en la pestaña.
+
+**Cómo se comporta Moonshine (laboratorio):**
+
+| Punto | Resultado | Detalle |
+|---|---|---|
+| Identificador de cada línea | No se repite dentro de un worker | Cada worker parte de un número aleatorio de 64 bits y suma uno por línea (31 líneas en 5 workers). La primera línea de la captura lleva el número siguiente al de la línea del calentamiento. |
+| Eventos de 24,5 s de audio | 71 | 10 líneas. El adaptador los convierte en 37 avisos de texto: no escucha `onLineUpdated`, que llega también cuando solo cambia la duración. |
+| Worker terminado a los 8 s | No da ningún error | La entrega de audio no falla, el audio sin recoger crece (18 s al acabar) y la orden de detener no recibe respuesta (se esperaron 20 s). Con esa traza, el adaptador avisa del fallo entre 15,0 y 15,1 s después. |
+| Cuánto tarda el calentamiento | 71 a 132 ms | 12 pasadas. La primera de un Chrome recién abierto tardó 251 ms. La carga del modelo, 193 a 303 ms. |
+| Retraso del primer texto sin calentamiento | 0,08 a 0,13 s | 6 pasadas con tres tramos del audio. Es el tiempo entre que se entrega el audio de la primera línea y llega su texto. |
+| Retraso del primer texto con calentamiento | 0,04 a 0,09 s | 10 pasadas con los mismos tramos. |
+| Reconocimiento de los primeros segundos | Cambia | Con calentamiento, el audio de referencia empieza con una línea «And?» donde la reunión dice «Um»; sin él no hay texto hasta el segundo 4,5. La siguiente línea es «You can't.» con calentamiento y «Here we go.» sin él (la reunión dice «right okay»). Ninguna de las dos es mejor. |
+
+**Con el panel de la extensión compilada:**
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| Captura normal | Bien | «Transcribiendo» entre 0,4 y 0,7 s después de «Iniciar» (3,2 s en el primer arranque de ese Chrome). El panel lee `warm-up.wav` de la propia extensión. El worker recibe, en este orden: la carga, la transcripción de calentamiento entera y la de la pestaña. El texto del calentamiento no aparece en el panel. «Detener» tarda 0,1 s, la línea abierta sale como definitiva y el worker desaparece. |
+| El worker muere a mitad de la captura | Detectado a los 15,1 s | 15 063 y 15 148 ms en dos pasadas, con la llamada en silencio desde ese momento. El panel muestra «El motor de transcripción ha fallado. El texto se conserva; pulsa «Iniciar» para seguir.», el texto sigue ahí e «Iniciar» queda disponible. |
+| «Iniciar» después del fallo | Bien | Worker nuevo y calentamiento de nuevo. El texto anterior queda encima y el mensaje se borra. |
+| El worker se queda colgado y se pulsa «Detener» | Se libera a los 15,0 s | El panel está en «Deteniendo…», con el botón deshabilitado, 15 022 y 15 027 ms en dos pasadas. Después vuelve a «Iniciar» con el texto intacto y **sin ningún mensaje**. El worker colgado gastaba un núcleo entero (3,03 s de procesador en 3 s); después, 0,04 s en 3 s, y desaparece a los 4,1 s. |
+
+Matices:
+
+- **El retraso de ≈ 1,6 s en la primera frase que recogía el diseño no aparece.** Con Tiny, el
+  calentamiento adelanta el primer texto 0,1 s como mucho, a cambio de 0,07 a 0,25 s más en «Preparando» y
+  de un reconocimiento distinto de los primeros segundos. Con Small y Medium está sin medir: ese día el
+  servidor del modelo no contestaba. Se vuelve a mirar en la tarea 5.2 (BL-51).
+- Que el panel espere 15 s en «Deteniendo…» y no diga nada cuando el motor ya no responde es
+  comportamiento del panel, no del adaptador. Está apuntado en BL-52.
+- En una primera pasada el worker se colgó con un bucle lanzado desde el depurador, y 10 s después de
+  «Detener» seguía figurando. Colgado desde una tarea normal del propio worker, desaparece: era un efecto
+  de la forma de colgarlo.
+- La carga del modelo no tiene límite de tiempo propio mientras sea el paquete quien lo descarga (BL-50).
+- Todo es con Chrome sin ventana y voz sintética; nadie ha escuchado el audio. Cada caso del panel se ha
+  ejecutado una o dos veces.
+- Pruebas automáticas: 75 en `src/engine/` y `tools/prepare-warm-up.test.mjs`, con un worker y un reloj
+  simulados y con los eventos reales guardados, y 3 sobre la extensión compilada. Para comprobar que
+  detectan errores se cambió el código de 80 formas distintas, una cada vez: las 80 hicieron fallar alguna
+  prueba.
 
 ## Pendiente en un Chrome con ventana
 

@@ -4,6 +4,7 @@ import { startTabCapture, type TabCapture } from '@/src/audio/tab-capture';
 import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
 import type { EngineEvent, TranscriptionEngine } from '@/src/engine/types';
+import { loadWarmUp } from '@/src/engine/warm-up';
 import { readTargetTab, watchTargetTab, type TargetTab } from '@/src/panel/target-tab';
 import { applyText, beginCapture, emptyTranscript, type Transcript } from '@/src/panel/transcript';
 
@@ -22,6 +23,8 @@ interface Download {
 
 // Los ficheros de Moonshine van dentro de la extensión, en su carpeta `moonshine/`.
 const MOONSHINE_URL = new URL('/moonshine/', location.href).href;
+// La frase de calentamiento también: el motor la transcribe al cargarse y descarta su texto.
+const WARM_UP_URL = new URL('/warm-up.wav', location.href).href;
 const MEGABYTE = 1_000_000;
 /** A menos de esta distancia del final, la vista sigue al texto nuevo. */
 const FOLLOW_MARGIN_PX = 40;
@@ -99,6 +102,7 @@ export default function App() {
     if (!targetTab || session.current) return;
     const engine = createMoonshineEngine({
       baseUrl: MOONSHINE_URL,
+      warmUp: () => loadWarmUp(WARM_UP_URL),
       onDownloadProgress: (loaded, total) => setDownload({ loaded, total }),
       updateIntervalSec: wordLog ? testUpdateInterval() : undefined,
     });

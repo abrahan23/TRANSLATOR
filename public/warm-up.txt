@@ -1,0 +1,12 @@
+warm-up.wav: frase de calentamiento del motor de transcripción.
+
+La extensión se la pasa al modelo de voz justo después de cargarlo, para que la primera frase de la
+llamada no pague el arranque. El texto que sale de ella se descarta.
+
+Es un recorte de 2 segundos del AMI Meeting Corpus (Universidad de Edimburgo):
+https://groups.inf.ed.ac.uk/ami/corpus/
+Licencia: Creative Commons Attribution 4.0 International (CC BY 4.0):
+https://creativecommons.org/licenses/by/4.0/
+
+Origen: reunión ES2002a, mezcla de los micrófonos de diadema (ES2002a.Mix-Headset.wav).
+Cambios: se recorta del segundo 757,1 al 759,1 de la reunión. Nada más: un canal, 16 kHz, 16 bits.

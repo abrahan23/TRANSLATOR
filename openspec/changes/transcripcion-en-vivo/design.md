@@ -45,7 +45,8 @@ en developer.chrome.com):
 - Entrega el texto por líneas (una línea es un tramo de habla entre pausas): avisa cuando una línea empieza,
   cada vez que cambia y cuando se cierra. No da el instante de cada palabra, salvo que se cargue un fichero
   más por modelo (D11).
-- Si no se le hace trabajar antes, la primera frase tras cargar el modelo llega tarde (≈ 1,6 s).
+- Si no se le hace trabajar antes, la primera frase tras cargar el modelo llega tarde (≈ 1,6 s). Medido de
+  nuevo en la tarea 3.1 con Tiny, ese retraso no se ha reproducido (`docs/medicion.md`, 3.1).
 - Si le llega audio después de detenerlo, da un error.
 
 **Lo ya medido** en este ordenador, con audio sintético de 8 frases entregado directamente al motor. Ese
@@ -160,6 +161,15 @@ por caído, con el motivo `failed`, en tres casos: Moonshine avisa de un error, 
 pasan 15 segundos sin que el worker complete ningún trabajo mientras se le entrega audio. El valor de 15
 segundos es inicial y se ajusta al probar.
 
+Concretado al construirlo (tarea 3.1; medido en `docs/medicion.md`, 3.1):
+
+- Un worker muerto no da error: deja de contestar. Por eso una llamada al worker que no recibe respuesta en
+  15 segundos cuenta como llamada fallida. La carga del modelo queda fuera de ese límite mientras sea el
+  paquete quien lo descarga (BL-50).
+- Los 15 segundos sin trabajo se cuentan con dos condiciones a la vez: 15 segundos de audio entregado y 15
+  segundos de reloj sin que el worker recoja ningún bloque. Un motor lento recoge los bloques con retraso,
+  pero los recoge: no cuenta como caído (D9).
+
 El identificador de cada fragmento es lo que usará `traduccion-en-vivo` para colocar cada traducción junto a
 su original.
 
@@ -239,7 +249,9 @@ esperando para siempre: el navegador libera el bloqueo solo.
 
 La spec prohíbe capturar audio mientras dura la descarga. Cargar el motor antes de capturar evita que los
 primeros segundos de la llamada se pierdan o se acumulen sin procesar. Con el modelo ya guardado, la carga
-tarda entre 0,2 y 0,8 segundos según el tamaño; el calentamiento no se ha medido por separado.
+tarda entre 0,2 y 0,8 segundos según el tamaño. El calentamiento, medido con Tiny en la tarea 3.1, añade
+entre 0,07 y 0,25 segundos y adelanta el primer texto 0,1 segundos como mucho (`docs/medicion.md`, 3.1). Con
+Small y Medium está sin medir.
 
 Si en el paso 4 Chrome rechaza la captura, el motor se libera y el panel lo explica, como pide la spec de
 captura. Eso incluye el caso de que la pestaña haya perdido el permiso durante una descarga larga.

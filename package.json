@@ -19,6 +19,7 @@
     "test": "npm run build && npm run build:dev && vitest run",
     "test:unit": "vitest run --exclude 'tests/build/**'",
     "prepare:reference": "node tools/prepare-reference.mjs",
+    "prepare:warm-up": "node tools/prepare-warm-up.mjs",
     "serve:reference": "node tools/serve-reference.mjs",
     "compare:delay": "node tools/compare-delay.mjs",
     "postinstall": "wxt prepare"
