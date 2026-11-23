@@ -5,7 +5,7 @@ import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
 import type { EngineEvent, TranscriptionEngine } from '@/src/engine/types';
 import { loadWarmUp } from '@/src/engine/warm-up';
-import { readTargetTab, watchTargetTab, type TargetTab } from '@/src/panel/target-tab';
+import { targetTabText, trackTargetTab, type TargetTab, type TargetTabTracker } from '@/src/panel/target-tab';
 import { applyText, beginCapture, emptyTranscript, type Transcript } from '@/src/panel/transcript';
 
 type Phase = 'idle' | 'preparing' | 'transcribing' | 'stopping';
@@ -61,15 +61,15 @@ export default function App() {
   const [download, setDownload] = useState<Download | null>(null);
   const [error, setError] = useState<string | null>(null);
   const session = useRef<Session | null>(null);
+  const targetTracker = useRef<TargetTabTracker | null>(null);
   const textBox = useRef<HTMLElement>(null);
   const followText = useRef(true);
 
   useEffect(() => {
-    void readTargetTab().then(setTargetTab);
-    // Durante una captura la pestaña objetivo no cambia; al terminar se vuelve a leer.
-    return watchTargetTab((tab) => {
-      if (!session.current) setTargetTab(tab);
-    });
+    // Desde «Iniciar» hasta que termina la captura, la pestaña mostrada no cambia (design.md, D7).
+    const tracker = trackTargetTab(setTargetTab);
+    targetTracker.current = tracker;
+    return () => tracker.stop();
   }, []);
 
   useEffect(() => {
@@ -108,6 +108,7 @@ export default function App() {
     });
     const current: Session = { engine, capture: null };
     session.current = current;
+    targetTracker.current?.hold();
     setError(null);
     setPhase('preparing');
     try {
@@ -130,7 +131,10 @@ export default function App() {
       followText.current = true;
       setPhase('transcribing');
     } catch (cause) {
-      if (session.current === current) session.current = null;
+      if (session.current === current) {
+        session.current = null;
+        targetTracker.current?.release();
+      }
       await engine.stop();
       setDownload(null);
       setError(`No se ha podido empezar: ${describe(cause)}`);
@@ -146,7 +150,7 @@ export default function App() {
     // Primero deja de llegar audio; después el motor cierra el texto que tenga abierto.
     await current.capture?.stop();
     await current.engine.stop();
-    setTargetTab(await readTargetTab());
+    targetTracker.current?.release();
     if (message) setError(message);
     setPhase('idle');
   }
@@ -163,11 +167,7 @@ export default function App() {
             Ajustes
           </button>
         </div>
-        <p className="target">
-          {targetTab
-            ? `Pestaña: ${targetTab.title || 'sin título'}`
-            : 'Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.'}
-        </p>
+        <p className="target">{targetTabText(targetTab)}</p>
         <div className="controls">
           {capturing ? (
             <button type="button" onClick={() => void stop()} disabled={phase === 'stopping'}>

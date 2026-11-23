@@ -298,9 +298,40 @@ Matices:
   detectan errores se cambió el código de 80 formas distintas, una cada vez: las 80 hicieron fallar alguna
   prueba.
 
+## 3.2 — La pestaña objetivo
+
+Fecha: 2026-11-23. Chrome 157.0.8103.80 sin ventana, la extensión compilada y un perfil que ya tiene Tiny
+guardado. No se descarga nada. El clic en el icono es el del protocolo de depuración
+(`Extensions.triggerAction`). Dos pasadas, con el mismo resultado.
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| Panel abierto sin clic en el icono | Pide el clic | «Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.» e «Iniciar» desactivado. Visto con la página del panel abierta como pestaña: Chrome no deja que la extensión abra el panel lateral sin un gesto. |
+| Primer clic en el icono | Muestra el título | «Pestaña: Llamada de prueba 3.2» e «Iniciar» activado. Solo se guardan el número de la pestaña y su título. |
+| Más clics en la misma pestaña | El panel no se cierra | Tres clics con esperas de 1 a 2,5 s entre uno y otro y, en la segunda pasada, un doble clic sin espera. Es la misma página del panel, sin recargar, y hay un solo panel lateral. Chrome avisó de una apertura del panel y de ningún cierre en toda la pasada. |
+| Clic desde otra pestaña, sin captura | Muestra la otra | Con otro clic en la de la llamada, vuelve a ella. |
+| Clic desde otra pestaña con una captura en marcha | El panel no cambia | Dos clics. Sigue «Transcribiendo» con el título de la llamada, Chrome solo tiene capturada la pestaña de la llamada y siguen llegando frases (de 1 a 3 definitivas en 9 s). |
+| «Detener» después | Muestra la otra pestaña | La del último clic. El texto se conserva y no queda ninguna captura. |
+| «Iniciar» que falla, con un clic desde otra pestaña mientras dice «Preparando…» | Muestra la del último clic | La pestaña objetivo se había cerrado. Mientras prepara, el panel no cambia; al fallar, a los 0,4 s, dice «No se ha podido empezar: Invalid tab specified.» |
+
+Matices:
+
+- Falta el clic con el ratón en un Chrome con ventana y abrir el panel desde el menú de Chrome: están en
+  la lista de abajo.
+- Si se cierra la pestaña objetivo, el panel sigue mostrando su título hasta el siguiente clic, y el aviso
+  es el de Chrome, en inglés. Es de la tarea 3.4.
+- El título es el del momento del clic. Si la página lo cambia después, el panel no se entera hasta el
+  siguiente clic (visto en la segunda pasada; BL-54).
+- Pruebas automáticas: 23 en `src/panel/target-tab.test.ts`, con el navegador simulado y el service worker
+  de verdad. Para comprobar que detectan errores se cambió el código de 28 formas distintas, una cada vez:
+  las 28 hicieron fallar alguna prueba.
+
 ## Pendiente en un Chrome con ventana
 
 1. Cerrar el panel con su X durante una captura: el indicador de captura de la pestaña desaparece y el
    vídeo sigue sonando.
 2. Clic en el icono e «Iniciar» en `chrome://extensions` y en la tienda de extensiones: qué ocurre.
 3. Arrancar con el Wi-Fi apagado (entra en la tarea 4.2).
+4. Dos clics seguidos con el ratón en el icono: el panel sigue abierto (tarea 3.2).
+5. Abrir el panel desde el menú de paneles laterales de Chrome, sin clic en el icono: pide hacer clic en
+   el icono (tarea 3.2).

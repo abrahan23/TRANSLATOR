@@ -653,3 +653,18 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
     pero el botón tarda ese instante en cambiar a «Cancelar».
 - **Cuándo retomarla:** en la tarea 4.2, que es cuando el panel empieza a usar esta descarga: lo que se
   decida vale para los dos.
+
+### BL-54 — El título de la pestaña en el panel puede quedarse viejo
+
+- **Estado:** Pendiente. No afecta a la captura, solo a lo que se lee en el panel.
+- **Qué se ha visto** (2026-11-23, `docs/medicion.md`, 3.2): el panel muestra el título que tenía la pestaña
+  en el momento del clic en el icono. Si la página lo cambia después (otro vídeo en la misma pestaña, por
+  ejemplo), el panel sigue con el antiguo hasta el siguiente clic.
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. El título solo sirve para confirmar qué pestaña es.
+  - **B. Seguir el título:** el service worker escucha los cambios de la pestaña objetivo y actualiza lo
+    guardado. Sin comprobar que Chrome entregue el título solo con el permiso `activeTab`.
+  - **C. Volver a leerlo al pulsar «Iniciar»:** menos piezas que B, pero antes de «Iniciar» puede seguir
+    viejo. La misma duda sobre el permiso.
+- **Cuándo retomarla:** en el grupo 4 (interfaz del panel), o antes si molesta al validar con llamadas
+  reales.
