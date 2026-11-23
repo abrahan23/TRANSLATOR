@@ -627,7 +627,9 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
     pintar en el panel y en los ajustes.
 - **Cómo ha quedado:** el límite es de 30 segundos sin recibir nada y vuelve a contar con cada trozo que
   llega, así que una descarga lenta que avanza no falla. Está en el módulo de descarga (`src/model/`).
-  Medido el mismo día, con el servidor todavía sin contestar: los ajustes lo dicen a los **30 s**.
+  Medido el mismo día, con el servidor todavía sin contestar: los ajustes lo dicen a los **30 s**. El
+  2026-11-23, con el servidor ya disponible, se vio en Chrome el resto: una descarga parada a mitad de un
+  fichero falla a los 30 s y una lenta que sigue avanzando no falla (`docs/qa-manual.md`).
 - **Lo que queda abierto:**
   - Los 30 segundos son una elección, no una medida. Si se ve que corta descargas que habrían terminado, se
     sube.
@@ -635,3 +637,19 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
     sin contestar tarda 76 s (medido) y enseña el error de Chrome sin pulir.
   - Con el panel y los ajustes esperando la misma descarga, cuando falla la primera página la otra lo
     intenta por su cuenta (D4): esa segunda página puede tardar hasta 60 s en decirlo.
+
+### BL-53 — Al reintentar, los ajustes dicen «0 de 51 MB» un instante
+
+- **Estado:** Pendiente. Es solo de aspecto.
+- **Qué se ha visto** (2026-11-23, `docs/qa-manual.md`): con parte del modelo ya guardada, al pulsar
+  «Reintentar» o «Descargar ahora» la fila dice «Descargando: 0 de 51 MB» durante una décima de segundo como
+  mucho y luego salta a lo ya guardado (35 de 51 MB en la prueba).
+- **Por qué:** la fila empieza en 0 y espera al primer aviso de progreso, que llega después de mirar qué
+  ficheros hay guardados (`src/settings/settings-state.ts`).
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo; apenas se ve.
+  - **B. Sin número hasta el primer aviso:** la fila dice «Descargando…» y el número aparece cuando se sabe.
+  - **C. Mirar lo guardado antes de dar la descarga por empezada:** el número es bueno desde el principio,
+    pero el botón tarda ese instante en cambiar a «Cancelar».
+- **Cuándo retomarla:** en la tarea 4.2, que es cuando el panel empieza a usar esta descarga: lo que se
+  decida vale para los dos.
