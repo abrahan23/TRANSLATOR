@@ -6,6 +6,13 @@ import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
 import type { EngineEvent, TranscriptionEngine } from '@/src/engine/types';
 import { loadWarmUp } from '@/src/engine/warm-up';
+import {
+  PROTECTED_PAGE_TEXT,
+  captureEndText,
+  startFailureText,
+  whyCaptureEnded,
+  type CaptureEnd,
+} from '@/src/panel/capture-text';
 import { targetTabText, trackTargetTab, type TargetTab, type TargetTabTracker } from '@/src/panel/target-tab';
 import { applyText, beginCapture, emptyTranscript, type Transcript } from '@/src/panel/transcript';
 
@@ -43,10 +50,6 @@ function testUpdateInterval(): number | undefined {
   return seconds > 0 ? seconds : undefined;
 }
 
-function describe(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
 function statusText(phase: Phase, download: Download | null): string {
   if (phase === 'transcribing') return 'Transcribiendo';
   if (phase === 'stopping') return 'Deteniendo…';
@@ -73,7 +76,11 @@ export default function App() {
 
   useEffect(() => {
     // Desde «Iniciar» hasta que termina la captura, la pestaña mostrada no cambia (design.md, D7).
-    const tracker = trackTargetTab(setTargetTab);
+    const tracker = trackTargetTab((tab) => {
+      setTargetTab(tab);
+      // Lo que se dijo de la pestaña anterior ya no vale para la nueva.
+      setError(null);
+    });
     targetTracker.current = tracker;
     return () => tracker.stop();
   }, []);
@@ -107,12 +114,17 @@ export default function App() {
     if (event.type === 'text') {
       setTranscript((previous) => applyText(previous, event.final, event.provisional));
     } else if (event.reason === 'failed') {
-      void stop('El motor de transcripción ha fallado. El texto se conserva; pulsa «Iniciar» para seguir.');
+      void stop('engine-failed');
     }
   }
 
   async function start() {
     if (!targetTab || session.current) return;
+    if (targetTab.protectedPage) {
+      // Página protegida (design.md, D7): Chrome la capturaría sin dar error, así que no se le pide.
+      setError(PROTECTED_PAGE_TEXT);
+      return;
+    }
     const engine = createMoonshineEngine({
       baseUrl: MOONSHINE_URL,
       warmUp: () => loadWarmUp(WARM_UP_URL),
@@ -144,7 +156,7 @@ export default function App() {
       setTranscript(beginCapture);
       const capture = await startTabCapture(targetTab.id, {
         onSamples: (samples) => engine.pushAudio(samples),
-        onEnded: () => void stop('La captura de la pestaña ha terminado.'),
+        onEnded: () => void whyCaptureEnded(targetTab.id).then(stop),
       });
       if (session.current !== current) {
         // Se detuvo mientras se preparaba: no queda nada en marcha.
@@ -164,12 +176,12 @@ export default function App() {
       await engine.stop();
       await endCapture(current);
       setDownload(null);
-      setError(`No se ha podido empezar: ${describe(cause)}`);
+      setError(startFailureText(cause));
       setPhase('idle');
     }
   }
 
-  async function stop(message?: string) {
+  async function stop(reason: CaptureEnd = 'stopped') {
     const current = session.current;
     if (!current) return;
     session.current = null;
@@ -179,6 +191,7 @@ export default function App() {
     await current.engine.stop();
     await endCapture(current);
     targetTracker.current?.release();
+    const message = captureEndText(reason);
     if (message) setError(message);
     setPhase('idle');
   }

@@ -11,8 +11,11 @@ import {
   type TargetTab,
 } from './target-tab';
 
-const CALL: ClickedTab = { id: 7, windowId: 1, title: 'Reunión semanal - Meet' };
-const OTHER: ClickedTab = { id: 9, windowId: 1, title: 'Correo' };
+// Con el clic en el icono, Chrome entrega también la dirección de la página, salvo en las protegidas.
+const CALL: ClickedTab = { id: 7, windowId: 1, title: 'Reunión semanal - Meet', url: 'https://meet.example/abc' };
+const OTHER: ClickedTab = { id: 9, windowId: 1, title: 'Correo', url: 'https://correo.example/' };
+/** Una página interna de Chrome: llega sin dirección y sin título (tarea 1.4). */
+const PROTECTED: ClickedTab = { id: 5, windowId: 1 };
 const ASK_FOR_CLICK = 'Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.';
 
 let open: MockInstance;
@@ -48,7 +51,7 @@ async function openPanel() {
 
 describe('clic en el icono', () => {
   it('abre el panel de esa ventana y anota la pestaña con su título', async () => {
-    await clickIcon({ id: 7, windowId: 3, title: 'Reunión semanal - Meet' });
+    await clickIcon({ ...CALL, windowId: 3 });
 
     expect(open).toHaveBeenCalledExactlyOnceWith({ windowId: 3 });
     expect(await readTargetTab()).toEqual({ id: 7, title: 'Reunión semanal - Meet' });
@@ -87,9 +90,29 @@ describe('clic en el icono', () => {
   });
 
   it('una pestaña que llega sin título se anota sin título', async () => {
-    await clickIcon({ id: 4, windowId: 1 });
+    await clickIcon({ id: 4, windowId: 1, url: 'https://meet.example/abc' });
 
     expect(await readTargetTab()).toEqual({ id: 4, title: '' });
+  });
+
+  it('una pestaña que llega sin dirección se anota como página protegida, y el panel se abre igual', async () => {
+    await clickIcon(PROTECTED);
+
+    expect(open).toHaveBeenCalledExactlyOnceWith({ windowId: 1 });
+    expect(await readTargetTab()).toEqual({ id: 5, title: '', protectedPage: true });
+  });
+
+  it('una dirección vacía cuenta como no tener dirección', async () => {
+    await clickIcon({ id: 5, windowId: 1, title: 'Extensiones', url: '' });
+
+    expect(await readTargetTab()).toEqual({ id: 5, title: 'Extensiones', protectedPage: true });
+  });
+
+  it('el clic desde una pestaña normal después de una protegida la deja como objetivo, sin la marca', async () => {
+    await clickIcon(PROTECTED);
+    await clickIcon(CALL);
+
+    expect(await readTargetTab()).toEqual({ id: 7, title: 'Reunión semanal - Meet' });
   });
 
   it('sin identificador de pestaña no abre el panel ni anota nada', async () => {
@@ -138,6 +161,14 @@ describe('pestaña objetivo en el panel', () => {
 
     expect(panel.shown).toEqual([{ id: 7, title: 'Reunión semanal - Meet' }]);
     expect(panel.text()).toBe('Pestaña: Reunión semanal - Meet');
+  });
+
+  it('abierto con el clic en el icono desde una página protegida: la muestra con su marca', async () => {
+    await clickIcon(PROTECTED);
+    const panel = await openPanel();
+
+    expect(panel.shown).toEqual([{ id: 5, title: '', protectedPage: true }]);
+    expect(panel.text()).toBe('Pestaña: sin título');
   });
 
   it('con el panel abierto y sin pestaña, el primer clic en el icono la muestra', async () => {
@@ -191,7 +222,7 @@ describe('pestaña objetivo en el panel', () => {
     const panel = await openPanel();
     panel.tracker.hold();
     await clickIcon(OTHER);
-    await clickIcon({ id: 12, windowId: 2, title: 'Documento' });
+    await clickIcon({ id: 12, windowId: 2, title: 'Documento', url: 'https://docs.example/1' });
     panel.tracker.release();
 
     expect(panel.shown).toEqual([

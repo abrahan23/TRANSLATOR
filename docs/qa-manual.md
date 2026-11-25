@@ -1,13 +1,20 @@
 # Escenarios recorridos en Chrome
 
 Escenarios de las specs comprobados en un Chrome de verdad, con su resultado y su fecha. De momento están
-los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5). Los demás se añaden en las tareas
-3.4 y 4.7. Lo que no se ha podido recorrer está dicho.
+los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5) y los de `captura-audio-pestana`
+sobre el fin de la captura y la pestaña que no se puede capturar (tarea 3.4). Los demás se añaden en la
+tarea 4.7. Lo que no se ha podido recorrer está dicho.
 
 ## Cómo se ha recorrido
 
 - **Equipo:** MacBook Air M1 (16 GB), macOS 26.6.2, Chrome 157.0.8103.79 y 157.0.8103.80. Fechas: 2026-11-22
-  y, para lo que necesita que la descarga avance o una captura de verdad, 2026-11-23.
+  y, para lo que necesita que la descarga avance o una captura de verdad, 2026-11-23. Los escenarios de la
+  tarea 3.4, el 2026-11-25 con Chrome 158.0.8127.37.
+- **El clic en el icono** es el del protocolo de depuración (`Extensions.triggerAction`), no el del ratón:
+  sin ventana no hay icono que pulsar.
+- **La extensión que corre es la compilada.** Un perfil que ya tenía la extensión puede seguir con el
+  service worker anterior aunque la carpeta haya cambiado. Desde la tarea 3.4, antes de empezar se carga
+  dos veces y se compara el service worker que corre con el fichero compilado.
 - **Chrome sin ventana, con un perfil temporal** y la extensión compilada (`npm run build`). Un script abre
   el panel y los ajustes, pulsa los botones y lee lo que hay en pantalla. Los scripts son temporales y no
   están en el repositorio.
@@ -117,9 +124,51 @@ Chrome 157.0.8103.80, después de añadir el límite de 30 segundos (tarea 2.5).
 | Los datos dejan de llegar a mitad de un fichero | Cumple (2026-11-23) | Con la red limitada a 0,5 MB/s, a los 37 de 51 MB (a mitad del cuarto fichero) se pausa el proceso de red del Chrome de la prueba. La fila sigue en «Descargando: 37 de 51 MB», con «Cancelar», durante **30,0 s**; después pasa a «Descarga no completada», con «Reintentar» y «La descarga del modelo de voz no se ha completado: se ha cortado antes de terminar.» La petición queda cancelada, el fichero a medias no se guarda y no queda ningún bloqueo tomado. |
 | Una descarga lenta que sigue avanzando no falla | Cumple (2026-11-23) | Con la red limitada a 60 kB/s durante 80 s: la fila avanza un megabyte cada 17 s (de 35 a 40 de 51 MB) y no falla; «Cancelar» responde al instante. Con 300 bytes por segundo durante 100 s (llegan 1 500 bytes cada 5 s): tampoco falla. |
 
+## Fin de la captura
+
+Recorrido el 2026-11-25 con Chrome 158.0.8127.37 y el Tiny ya guardado: no se descarga nada. La pestaña
+capturada reproduce voz en inglés. Después de cada caso se mira que no queda nada en marcha: Chrome no da
+ninguna pestaña por capturada, la pista de audio está terminada, los dos contextos de audio cerrados y el
+bloqueo `translator-capture` libre. Las medidas están en `docs/medicion.md` (3.4).
+
+| Escenario | Resultado | Detalle |
+|---|---|---|
+| El usuario detiene la captura | Cumple | Con texto ya en pantalla, «Detener»: el panel vuelve a ofrecer «Iniciar» 4 ms después del clic, sin ningún mensaje y con el texto conservado. No queda nada en marcha. |
+| Se cierra el panel | Cumple, cerrándolo desde el script | Con una captura en marcha y texto llegando se cierra la página del panel. A los 0,48 s ya no existe, y con ella se van el motor y su modelo; en ese mismo momento el bloqueo queda libre y la pestaña deja de estar capturada. La pestaña sigue abierta. Un panel abierto después empieza vacío y vuelve a capturar. Falta cerrarlo con su X en un Chrome con ventana. |
+| Se cierra la pestaña capturada | Cumple | Ocho veces: cuatro cerrándola desde fuera y cuatro desde la extensión, la mitad con voz sonando y la mitad en silencio. El panel vuelve a «Iniciar» con «La pestaña que se estaba transcribiendo se ha cerrado. El texto se conserva.» entre 36 y 90 ms después del cierre. En ninguna queda nada en marcha. |
+| La pestaña capturada navega a otra página | Cumple | A otra página del mismo sitio y a una de otro sitio. La captura sigue con la misma pestaña, el panel sigue en «Transcribiendo» sin ningún mensaje y al motor le siguen llegando 20 bloques de audio por segundo. Con voz en la página nueva llega texto nuevo. «Detener» la termina después. Matiz: el panel sigue mostrando el título de la primera página (BL-54). |
+| Fuera de la spec: clic en el icono desde otra pestaña durante la captura, y la capturada se cierra | Correcto | El panel dice que la pestaña se cerró y pasa a mostrar la otra, lista para «Iniciar». |
+| Fuera de la spec: Chrome deja de capturar con la pestaña abierta | Correcto | Forzado desde el script: no se conoce ninguna forma real de que ocurra. El panel vuelve a «Iniciar» en 23 ms y dice que Chrome ha dejado de capturar la pestaña, que el texto se conserva y que se pulse «Iniciar» para seguir. No dice que la pestaña se cerró. |
+| Fuera de la spec: la página capturada se rompe | **La captura no termina** | Con la página rota a propósito y la pestaña todavía abierta, 8 s después el panel sigue en «Transcribiendo»: Chrome no avisa de nada y sigue entregando bloques de audio, sin que llegue texto nuevo. «Detener» la termina. Anotado en el BACKLOG (BL-59). |
+
+## Pestaña que no se puede capturar
+
+Recorrido el 2026-11-25, como la sección anterior. Después de cada «Iniciar» se lee el panel unas 65 veces
+durante 1,5 s: en ningún caso llega a decir «Transcribiendo».
+
+| Escenario | Resultado | Detalle |
+|---|---|---|
+| Página protegida del navegador | Cumple; la tienda de extensiones, sin recorrer | Con `chrome://version`, `chrome://extensions`, `chrome://newtab` y `chrome://settings`. El clic en el icono abre el panel, que muestra «Pestaña: sin título». «Iniciar»: «Esta página es del navegador y no se puede transcribir. Abre la llamada en otra pestaña y haz clic en el icono de TRANSLATOR desde ella.» El panel no pasa por «Preparando…», no se pide la captura a Chrome y no queda nada en marcha. Con un clic en el icono desde la pestaña de la llamada, el mensaje desaparece. La tienda de extensiones no se ha podido abrir con el perfil temporal. |
+| La extensión no se ha activado en esa pestaña | Cumple | Después del clic en el icono, la pestaña pasa a una página de otro sitio y se pulsa «Iniciar». A los 0,3 s: «Chrome no permite capturar esta pestaña porque TRANSLATOR no está activado en ella. Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.» No queda nada en marcha. Con un clic en el icono desde esa pestaña el mensaje desaparece, e «Iniciar» la captura. |
+| Fuera de la spec: la pestaña objetivo se cerró antes de «Iniciar» | Correcto | A los 0,3 s: «La pestaña se ha cerrado. Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.» Igual si la que se cerró era la que se estaba transcribiendo y se vuelve a pulsar «Iniciar» sin elegir otra. |
+| Fuera de la spec: `about:blank`, `data:` y `view-source:` | Correcto, con un matiz | Llegan sin dirección, como las páginas del navegador, y reciben el mismo mensaje. No se capturan. El mensaje las llama «del navegador» (BL-58). |
+| Fuera de la spec: una página abierta desde un fichero del ordenador | Se captura | Llega con su dirección y su título, e «Iniciar» la transcribe como a cualquier otra. |
+| Fuera de la spec: clic en el icono en una pestaña recién abierta, antes de que cargue nada | **Mensaje equivocado** | El clic llega sin dirección y la pestaña queda anotada como página del navegador. Ya cargada, «Iniciar» dice que es del navegador, y no lo es. Con otro clic en el icono queda bien y se captura. Anotado en el BACKLOG (BL-58). |
+| Fuera de la spec: se hace lo que pide el mensaje y la pestaña tiene el mismo título | **El mensaje se queda** | La pestaña cambia a una página de otro sitio con el mismo título; «Iniciar» pide el clic en el icono; se hace, y el mensaje sigue en el panel. «Iniciar» funciona y entonces lo quita. Anotado en el BACKLOG (BL-57). |
+
+En el caso de la extensión sin activar y en el de la pestaña cerrada antes de «Iniciar», el panel dice
+durante unas décimas «Descargando el modelo de voz…» antes del mensaje, aunque el modelo ya está guardado
+(BL-55). Con una página protegida no: el mensaje sale al instante.
+
 ## Pendiente
 
 1. Con la tarea 4.2: la parte de captura de «Elegir otro tamaño» y de «Reinicio del navegador»; en el panel,
    que es donde los sitúa la spec, «La conexión se corta a mitad», «Reintento con la conexión recuperada» y
    «El servidor de descarga no contesta».
 2. En un Chrome con ventana: abrir los ajustes con el clic derecho en el icono → «Opciones».
+3. En un Chrome con ventana: el clic con el ratón en el icono desde una página del navegador, cerrar el
+   panel con su X durante una captura y la tienda de extensiones como página protegida.
+4. Con la tarea 4.2: «Iniciar» en una pestaña que no se puede capturar cuando el modelo todavía no está
+   descargado. Según el diseño (D5), el aviso llega después de la descarga.
+5. Con la tarea 4.5: que el motor falle a mitad de una captura. Se vio en la tarea 3.1 (`docs/medicion.md`)
+   y el mensaje no ha cambiado, pero el 2026-11-25 no se ha repetido.

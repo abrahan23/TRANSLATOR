@@ -387,6 +387,9 @@ documentación oficial, consultada el 2026-11-19.
   historial de navegación.
 - **Cuándo retomarla:** si con un clic real una página protegida llega con dirección, o una página normal
   llega sin ella.
+- **Visto el 2026-11-25** (tarea 3.4, clic simulado): una página normal llega sin dirección si el clic se
+  hace en una pestaña recién abierta, antes de que cargue su primera página. Está en BL-58, con sus
+  opciones. Con el clic real sigue sin probar.
 - **No elegido tampoco:** quitar de la spec el escenario de la página protegida y dejar que se capture.
 
 ## Motor de transcripción (B8)
@@ -702,3 +705,57 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
   - **C. Avisar cuando la pestaña objetivo es de otra ventana:** menos trabajo que B, un texto más en el
     panel.
 - **Cuándo retomarla:** si se ve que se usa con dos ventanas. No bloquea nada.
+
+### BL-57 — El aviso del panel no se quita si el nuevo clic en el icono guarda lo mismo
+
+- **Estado:** Pendiente. El aviso sobra un rato; la captura funciona.
+- **Qué se ha visto** (2026-11-25, `docs/medicion.md`, 3.4): la pestaña pasa a otro sitio que tiene el mismo
+  título. «Iniciar» dice que la extensión no está activada en ella y pide el clic en el icono. Se hace el
+  clic y el aviso sigue en el panel. «Iniciar» funciona y entonces lo quita.
+- **Por qué:** el panel quita el aviso cuando cambia la pestaña objetivo guardada. Si el clic guarda el mismo
+  número y el mismo título, Chrome no avisa de ningún cambio.
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. Lo único que se nota es el aviso de más hasta pulsar «Iniciar».
+  - **B. Que cada clic en el icono cuente como un cambio:** el service worker guarda también el momento del
+    clic. Un dato más guardado, que no dice nada de la página.
+  - **C. Quitar el aviso pasados unos segundos:** no depende del clic, pero puede quitar un aviso que
+    todavía vale.
+- **Cuándo retomarla:** en el grupo 4, con el estado del panel (4.1) y su interfaz (4.3).
+
+### BL-58 — Pestañas que llegan sin dirección y no son del navegador
+
+- **Estado:** Pendiente. No se captura nada que no se deba; el aviso dice algo que no es verdad.
+- **Qué se ha visto** (2026-11-25, `docs/medicion.md`, 3.4):
+  - Con un clic en el icono en una pestaña recién abierta, antes de que cargue su primera página, la
+    extensión no recibe ni la dirección ni el título. La pestaña queda anotada como página del navegador y,
+    ya cargada, «Iniciar» dice que no se puede transcribir. Con otro clic en el icono queda bien.
+  - `about:blank`, `data:` y `view-source:` también llegan sin dirección y reciben el mismo aviso, que las
+    llama «del navegador».
+- **Por qué:** una página protegida se reconoce porque llega sin dirección (D7), y no es la única que llega
+  así. Solo está visto con el clic simulado.
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. El aviso ya pide hacer clic en el icono desde la llamada, y ese clic lo
+    arregla.
+  - **B. Cambiar el texto del aviso** para que valga en los dos casos: esa pestaña no se puede transcribir
+    tal como está y, si es la de la llamada, hay que volver a hacer clic en el icono cuando haya cargado.
+    Poco trabajo; el texto queda menos concreto.
+  - **C. Tratar aparte la pestaña que llega «cargando»:** no anotarla como protegida y dejar que Chrome
+    decida al pulsar «Iniciar». Riesgo sin comprobar: una página del navegador pulsada mientras carga se
+    capturaría sin aviso, que es lo que D7 evita.
+  - **D. El permiso `tabs` (BL-48):** con él se conoce siempre la dirección. Es más permiso del necesario.
+- **Cuándo retomarla:** en el grupo 4, al revisar los textos del panel.
+
+### BL-59 — Si la página capturada se rompe, la captura sigue
+
+- **Estado:** Pendiente. Se espera que sea poco frecuente.
+- **Qué se ha visto** (2026-11-25, `docs/medicion.md`, 3.4): con la página de la pestaña capturada rota a
+  propósito y la pestaña todavía abierta, la captura no termina. 8 s después el panel sigue en
+  «Transcribiendo», sin texto nuevo: Chrome no avisa de nada y sigue entregando bloques de audio. «Detener»
+  la termina con normalidad.
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. El usuario ve que no llega texto y pulsa «Detener».
+  - **B. Avisar cuando pasa mucho rato sin sonido:** sirve también para una pestaña silenciada, pero hay que
+    elegir cuánto es mucho y puede avisar en una llamada que simplemente está callada.
+  - **C. Vigilar la pestaña desde el service worker:** sin comprobar que Chrome avise de una página rota con
+    los permisos actuales.
+- **Cuándo retomarla:** si ocurre en llamadas reales. No bloquea nada.

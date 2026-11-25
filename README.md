@@ -16,13 +16,15 @@ Versión mínima, para comprobar que la pieza principal funciona de punta a punt
 - Hay una página de ajustes para elegir el tamaño del modelo y descargarlo antes de la llamada. El
   panel todavía no usa el tamaño elegido: transcribe siempre con Tiny.
 - Todavía no hay traducción, ni contexto técnico, ni captura del micrófono.
-- Los mensajes de error son los que da Chrome, sin pulir.
+- Los avisos sobre la pestaña (página del navegador, pestaña cerrada, extensión sin activar en ella)
+  ya están en español. Los fallos de la descarga del modelo en el panel todavía son los que da
+  Chrome, sin pulir.
 
 Qué viene después y en qué orden: [openspec/changes/transcripcion-en-vivo/tasks.md](openspec/changes/transcripcion-en-vivo/tasks.md).
 
 ## Requisitos
 
-- Google Chrome 116 o posterior (probado con Chrome 157 en macOS, Apple M1).
+- Google Chrome 116 o posterior (probado con Chrome 157 y 158 en macOS, Apple M1).
 - Node.js 22 o posterior, con npm.
 - Conexión a internet la primera vez que se pulsa «Iniciar»: se descarga el modelo de voz (51 MB)
   desde `download.moonshine.ai` y queda guardado en el navegador. Después funciona sin conexión.
@@ -56,7 +58,15 @@ Después de volver a compilar, pulsa el botón de recargar de la extensión en `
 5. Pulsa «Detener» para terminar. Si vuelves a pulsar «Iniciar», el texto nuevo va debajo del anterior.
 
 El clic en el icono es lo que da permiso a la extensión sobre esa pestaña: si quieres transcribir
-otra, haz clic en el icono estando en ella.
+otra, haz clic en el icono estando en ella. Si la pestaña pasa a otro sitio web antes de pulsar
+«Iniciar», el permiso se pierde: el panel lo dice y pide otro clic en el icono.
+
+Las páginas del propio navegador (las que empiezan por `chrome://`, como la de extensiones o la de
+ajustes) no se pueden transcribir. El panel lo dice al pulsar «Iniciar» y no captura nada.
+
+La transcripción termina al pulsar «Detener», al cerrar el panel o al cerrar la pestaña. Si se cierra
+la pestaña, el panel lo dice y conserva el texto. Si la pestaña pasa a otra página, la transcripción
+sigue.
 
 Solo puede haber una transcripción en marcha a la vez. Si ya hay una en otra ventana, el panel lo
 dice y no ofrece «Iniciar» hasta que se detenga.
@@ -85,7 +95,8 @@ en el icono de TRANSLATOR → «Opciones».
 ## Cómo funciona
 
 1. **Clic en el icono.** El service worker ([entrypoints/background.ts](entrypoints/background.ts))
-   abre el panel lateral y anota qué pestaña es.
+   abre el panel lateral y anota qué pestaña es. Si la pestaña llega sin dirección, es una página
+   del navegador: queda anotada como tal y no se captura.
 2. **«Iniciar».** La página del panel ([entrypoints/sidepanel/](entrypoints/sidepanel/)) carga el
    motor y captura el audio de la pestaña.
 3. **Dos caminos de audio** ([src/audio/tab-capture.ts](src/audio/tab-capture.ts)). Chrome silencia
@@ -131,7 +142,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `src/engine/` | Interfaz del motor de transcripción, adaptador de Moonshine y lectura de la frase de calentamiento. Las pruebas del adaptador usan eventos reales de Moonshine guardados en `recorded-run.json`. |
 | `src/audio/` | Captura del audio de la pestaña y captura única: el bloqueo que el panel toma al pulsar «Iniciar», y cómo saben los ajustes y los demás paneles si hay una captura en marcha. |
 | `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado, descarga única compartida entre el panel y los ajustes, y textos de una descarga que no se completa. Lo usan los ajustes; el panel, todavía no. |
-| `src/panel/` | Pestaña objetivo y texto del panel. |
+| `src/panel/` | Pestaña objetivo, texto del panel y avisos de la captura: por qué no se puede empezar y por qué ha terminado. |
 | `src/settings/` | Tamaño de modelo elegido (se guarda en este ordenador y es Tiny mientras no se elija otro) y lo que muestra la página de ajustes en cada momento. El panel todavía no usa el tamaño elegido. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
 | `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. También el recorte de la frase de calentamiento. |

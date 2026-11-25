@@ -8,6 +8,8 @@ import { browser } from 'wxt/browser';
 export interface TargetTab {
   id: number;
   title: string;
+  /** Página protegida del navegador: llegó sin dirección en el clic en el icono y no se captura (D7). */
+  protectedPage?: true;
 }
 
 export const TARGET_TAB_KEY = 'targetTab';
@@ -25,6 +27,8 @@ export interface ClickedTab {
   id?: number;
   windowId: number;
   title?: string;
+  /** Solo llega si el clic da permiso sobre la página: de una página protegida del navegador no llega. */
+  url?: string;
 }
 
 /**
@@ -36,6 +40,8 @@ export async function handleIconClick(tab: ClickedTab): Promise<void> {
   if (tab.id === undefined) return;
   const opened = browser.sidePanel.open({ windowId: tab.windowId });
   const target: TargetTab = { id: tab.id, title: tab.title ?? '' };
+  // La dirección solo se mira para saber si la página es protegida: no se guarda.
+  if (!tab.url) target.protectedPage = true;
   await Promise.all([opened, browser.storage.session.set({ [TARGET_TAB_KEY]: target })]);
 }
 

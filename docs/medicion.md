@@ -1,7 +1,7 @@
 # Comprobaciones y mediciones
 
-Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de las tareas 2.2, 3.1, 3.2 y
-3.3. Cada cifra sale de una ejecución real. Lo que no se ha podido comprobar está dicho.
+Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de las tareas 2.2, 3.1, 3.2, 3.3
+y 3.4. Cada cifra sale de una ejecución real. Lo que no se ha podido comprobar está dicho.
 
 ## Cómo se ha comprobado
 
@@ -194,6 +194,9 @@ transcribir y no se inicia ninguna captura. Lo observado es distinto:
 la pestaña, el panel avisa de que esa página no se puede transcribir y no captura. No se pide ningún
 permiso nuevo. La spec no cambia (el escenario «Página protegida del navegador» ya dice eso); el diseño lo
 recoge en D7 y se construye en la tarea 3.4. Las opciones que no se eligieron están en BL-48.
+
+Construido y vuelto a medir el 2026-11-25 con Chrome 158 (sección 3.4): esas páginas siguen llegando sin
+dirección ni título, y el panel ya no las captura.
 
 ## Dato para `traduccion-en-vivo`: cuándo se cierra cada línea
 
@@ -402,11 +405,96 @@ Matices:
   distintas, una cada vez: las 9 hicieron fallar alguna prueba. La captura del audio no tiene pruebas
   automáticas, como prevé el diseño (D16): es lo que se ha medido aquí.
 
+## 3.4 — Fin de la captura y pestañas que no se pueden capturar
+
+Fecha: 2026-11-25. Chrome 158.0.8127.37 sin ventana, la extensión compilada y un perfil que ya tiene Tiny
+guardado. No se descarga nada. El clic en el icono es el del protocolo de depuración. Una pasada completa,
+con 51 comprobaciones cumplidas de 51, y otra más corta para los casos límite. Los escenarios de la spec,
+uno a uno, están en `docs/qa-manual.md`.
+
+Una sonda en la página del panel anota lo que la extensión pide a Chrome (la captura de la pestaña y la
+pregunta por la pestaña), los contextos de audio, la pista capturada y los bloques entregados al motor. No
+cambia el código de la extensión.
+
+**Qué entrega Chrome con el clic en el icono, según la página:**
+
+| Página | Dirección y título | Cómo queda anotada |
+|---|---|---|
+| Página web normal | Los dos | Normal |
+| Fichero del ordenador (`file://`) | Los dos | Normal. «Iniciar» la captura. |
+| Página de ajustes de la propia extensión | Los dos | Normal. No se ha probado «Iniciar» en ella. |
+| `chrome://version`, `chrome://extensions`, `chrome://newtab` y `chrome://settings` | Ninguno | Protegida |
+| `about:blank`, `view-source:…` y `data:…` | Ninguno | Protegida (BL-58) |
+| Pestaña recién abierta que aún no ha cargado nada | Ninguno | Protegida, aunque no lo sea (BL-58) |
+
+De la pestaña se guardan su número, su título y, si llega sin dirección, la marca de protegida. La
+dirección no se guarda.
+
+**Pestaña que no se puede capturar:**
+
+| Caso | Qué dice Chrome | Qué dice el panel | Detalle |
+|---|---|---|---|
+| Página protegida (las siete de arriba) | Nada: no se le pide la captura | «Esta página es del navegador y no se puede transcribir. Abre la llamada en otra pestaña y haz clic en el icono de TRANSLATOR desde ella.» | Al instante. El panel, leído entre 65 y 68 veces en 1,5 s, no pasa por «Preparando…» ni por «Transcribiendo». Ninguna petición a Chrome, ningún contexto de audio y el bloqueo sin tomar. |
+| La extensión no está activada en la pestaña | `Extension has not been invoked for the current page (see activeTab permission). Chrome pages cannot be captured.` | «Chrome no permite capturar esta pestaña porque TRANSLATOR no está activado en ella. Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.» | A los 0,30 s. Se llega aquí cuando la pestaña pasa a otro sitio después del clic en el icono. Tras un nuevo clic, «Iniciar» captura (0,31 s). |
+| La pestaña objetivo ya se cerró | `Invalid tab specified.` | «La pestaña se ha cerrado. Haz clic en el icono de TRANSLATOR en la pestaña de la llamada.» | A los 0,32 s. |
+
+Los dos textos de Chrome son los que se midieron en la tarea 1.4. Cualquier otro fallo al empezar sigue
+saliendo como «No se ha podido empezar: …», con el texto de Chrome.
+
+**Fin de la captura (D9):**
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| «Detener» | El panel vuelve a «Iniciar» a los 4 ms | La captura había empezado en 0,36 s y el primer texto llegó a los 2,4 s de sonar la voz. Sin mensaje y con el texto conservado. |
+| Se cierra la pestaña capturada, 8 veces | «La pestaña que se estaba transcribiendo se ha cerrado. El texto se conserva.» | A los 40, 90, 36, 79, 41, 86, 40 y 38 ms del cierre. Cuatro cerrándola desde fuera y cuatro desde la extensión; la mitad con voz sonando. |
+| Cómo sabe el panel que se cerró | Se lo pregunta a Chrome | Cuando la pista termina sola, el panel pregunta por la pestaña. Las 8 veces, Chrome contesta `No tab with id: N.` en 3 a 7 ms. La pregunta funciona sin el permiso `tabs`. El aviso de Chrome de que la pestaña se cerró llega 1 o 2 ms antes de que termine la pista. |
+| La pista termina con la pestaña abierta (forzado) | «Chrome ha dejado de capturar la pestaña. El texto se conserva; pulsa «Iniciar» para seguir.» | A los 23 ms. Chrome sí conoce la pestaña (contesta en 1 ms). No se conoce ningún caso real en que ocurra. |
+| La pestaña navega: al mismo sitio y a otro | La captura sigue | La página nueva carga en 17 y 18 ms. Sigue capturada la misma pestaña, la pista sigue viva y llegan 20 bloques por segundo. Texto nuevo a los 2,4 y 8,5 s de sonar la voz en la página nueva. |
+| La página capturada se rompe (forzado) | La captura **no** termina | 8 s después el panel sigue en «Transcribiendo», la pista sigue viva y han llegado 161 bloques. La pestaña sigue abierta y Chrome no avisa de nada (BL-59). |
+| Se cierra el panel | Todo se libera en 0,48 s | La página del panel desaparece a los 479 ms, el bloqueo queda libre a los 481 y la pestaña deja de estar capturada a los 483. La pestaña sigue abierta. |
+
+Después de cada caso se mira lo mismo: ninguna pestaña capturada, pista terminada, contextos de audio
+cerrados y bloqueo libre.
+
+**Casos límite del clic en el icono** (segunda pasada):
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| Un nuevo clic que guarda lo mismo que había | El mensaje anterior no se quita | La pestaña pasa a otro sitio con el mismo título. «Iniciar» pide el clic en el icono. El clic guarda el mismo número y el mismo título, el panel no recibe ningún aviso de cambio y el mensaje sigue. «Iniciar» funciona (0,57 s) y lo quita (BL-57). |
+| Clic en una pestaña recién abierta (a los 0,16 s) cuya página tarda 3 s en llegar | Queda como protegida | El clic llega sin dirección ni título, con la pestaña «cargando». Cuando la página carga no cambia nada, e «Iniciar» da el mensaje de página del navegador. Con otro clic queda bien y captura (0,31 s) (BL-58). |
+| Clic en una pestaña ya cargada que va camino de otro sitio | Correcto | Llegan la dirección y el título de la página que se va. Con la nueva ya cargada, «Iniciar» pide el clic en el icono (0,33 s). |
+| Clic en una pestaña ya cargada que va camino de otra página del mismo sitio | Correcto | «Iniciar» captura (0,36 s). El panel muestra el título de la página anterior (BL-54). |
+
+Matices:
+
+- **El service worker de un perfil ya usado.** Un perfil que ya tenía la extensión siguió con el service
+  worker anterior (685 bytes) aunque la carpeta tenía el nuevo (765 bytes). Por eso una primera pasada dio
+  45 de 50: las cinco que fallaron eran las de la página protegida. Al cargar la carpeta por segunda vez,
+  Chrome lo sustituye y el modelo guardado sigue ahí. Desde ahora las comprobaciones miran, antes de
+  empezar, que el service worker que corre es el compilado. Para quien usa la extensión es lo que ya dice
+  el README: recargarla en `chrome://extensions` después de compilar.
+- Con el modelo guardado, antes de los mensajes de «sin activar» y de «pestaña cerrada» el panel pasa unas
+  décimas por «Descargando el modelo de voz…» (BL-55). Con el modelo sin descargar, esos dos avisos
+  llegarían después de la descarga: es el orden de D5 y se recorre en la tarea 4.2.
+- D9 dice que el cierre de la pestaña se detecta porque Chrome avisa. Aquí el panel pregunta a Chrome en
+  lugar de esperar el aviso: el resultado es el mismo y no hace falta tener nada escuchando.
+- El mensaje de «Chrome ha dejado de capturar» no está en la tabla de D9. Cubre que la pista termine sin
+  que la pestaña se haya cerrado.
+- Sin recorrer: la tienda de extensiones, el clic con el ratón en una página del navegador y el cierre del
+  panel con su X (están en la lista de abajo). Todo es con la versión normal; la de desarrollo no se ha
+  pasado por Chrome en esta tarea.
+- Pruebas automáticas: 14 en `src/panel/capture-text.test.ts` y 4 nuevas en
+  `src/panel/target-tab.test.ts` (ya son 27). Para comprobar que detectan errores se cambió el código de 23
+  formas distintas, una cada vez: las 23 hicieron fallar alguna prueba. El cableado del panel no tiene
+  pruebas automáticas: es lo que se ha recorrido en Chrome.
+
 ## Pendiente en un Chrome con ventana
 
 1. Cerrar el panel con su X durante una captura: el indicador de captura de la pestaña desaparece y el
    vídeo sigue sonando.
-2. Clic en el icono e «Iniciar» en `chrome://extensions` y en la tienda de extensiones: qué ocurre.
+2. Clic con el ratón en el icono e «Iniciar» en `chrome://extensions` y en la tienda de extensiones: el
+   panel dice que esa página no se puede transcribir y no captura (tarea 3.4; con el clic simulado ya está
+   visto, salvo la tienda).
 3. Arrancar con el Wi-Fi apagado (entra en la tarea 4.2).
 4. Dos clics seguidos con el ratón en el icono: el panel sigue abierto (tarea 3.2).
 5. Abrir el panel desde el menú de paneles laterales de Chrome, sin clic en el icono: pide hacer clic en
