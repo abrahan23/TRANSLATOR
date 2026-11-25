@@ -668,3 +668,37 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
     viejo. La misma duda sobre el permiso.
 - **Cuándo retomarla:** en el grupo 4 (interfaz del panel), o antes si molesta al validar con llamadas
   reales.
+
+### BL-55 — El panel dice «Descargando el modelo de voz» con el modelo ya guardado
+
+- **Estado:** Pendiente. Es solo de aspecto.
+- **Qué se ha visto** (2026-11-23, `docs/medicion.md`, 3.3): con el modelo ya guardado, en cada «Iniciar» el
+  panel pasa por «Descargando el modelo de voz: 3 de 51 MB», «35 de 51 MB» y «51 de 51 MB» durante 0,3 a
+  0,4 s. No se descarga nada.
+- **Por qué:** Moonshine avisa del progreso también cuando lee el modelo de lo guardado, y el panel toma
+  cualquier aviso de progreso por una descarga (`entrypoints/sidepanel/App.tsx`).
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. Dice algo que no es verdad, aunque dure poco.
+  - **B. Decir «Descargando» solo si se descarga:** el panel mira antes si el modelo está guardado
+    (`src/model/` ya lo sabe) y, si lo está, se queda en «Preparando…».
+  - **C. Esperar medio segundo antes de enseñarlo:** menos piezas, pero una descarga de verdad tarda ese rato
+    de más en decirlo y un disco lento volvería a enseñarlo.
+- **Cuándo retomarla:** en la tarea 4.2, que rehace la secuencia de «Iniciar» y pasa la descarga del panel al
+  módulo propio.
+
+### BL-56 — La pestaña objetivo es una sola para todas las ventanas
+
+- **Estado:** Pendiente. Solo se nota con el panel abierto en dos ventanas.
+- **Qué se ha visto** (2026-11-23, `docs/medicion.md`, 3.3): la pestaña objetivo es la del último clic en el
+  icono, en cualquier ventana. Con el panel abierto en dos ventanas, un clic en el icono en la segunda
+  cambia también lo que muestra el panel de la primera, si no está capturando. «Iniciar» en la primera
+  captura entonces la pestaña de la segunda ventana.
+- **Por qué:** se guarda una sola pestaña objetivo en el almacenamiento de sesión (D7, D13).
+- **Opciones:**
+  - **A. Dejarlo.** Sin trabajo. El panel dice siempre qué pestaña va a capturar y solo puede haber una
+    captura.
+  - **B. Una pestaña objetivo por ventana:** cada panel muestra la del último clic en su ventana. Más
+    piezas: el panel tiene que saber en qué ventana está.
+  - **C. Avisar cuando la pestaña objetivo es de otra ventana:** menos trabajo que B, un texto más en el
+    panel.
+- **Cuándo retomarla:** si se ve que se usa con dos ventanas. No bloquea nada.

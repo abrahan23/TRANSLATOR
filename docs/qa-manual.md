@@ -7,12 +7,13 @@ los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5). L
 ## Cómo se ha recorrido
 
 - **Equipo:** MacBook Air M1 (16 GB), macOS 26.6.2, Chrome 157.0.8103.79 y 157.0.8103.80. Fechas: 2026-11-22
-  y, para lo que necesita que la descarga avance, 2026-11-23.
+  y, para lo que necesita que la descarga avance o una captura de verdad, 2026-11-23.
 - **Chrome sin ventana, con un perfil temporal** y la extensión compilada (`npm run build`). Un script abre
   el panel y los ajustes, pulsa los botones y lee lo que hay en pantalla. Los scripts son temporales y no
   están en el repositorio.
-- **La captura se simula.** El panel todavía no avisa de que está capturando (llega con la tarea 3.3). El
-  script toma a mano, desde la página del panel, el mismo bloqueo que tomará el panel (`translator-capture`).
+- **La captura es de verdad** desde el 2026-11-23 (tarea 3.3): el panel captura una pestaña que reproduce
+  audio y toma el bloqueo `translator-capture` al pulsar «Iniciar». El 2026-11-22 se simulaba: el script
+  tomaba ese mismo bloqueo a mano desde la página del panel.
 - **El panel todavía transcribe siempre con Tiny.** El tamaño elegido lo usará en la tarea 4.2. De los
   escenarios que terminan en una captura solo está recorrida la parte que se ve en los ajustes.
 - **«Sin conexión»** es el modo sin conexión de las herramientas de Chrome, no el Wi-Fi apagado. Ese modo no
@@ -59,13 +60,15 @@ los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5). L
 
 ## El tamaño no se cambia durante una captura
 
-Con la captura simulada (ver arriba).
+Con una captura de verdad (2026-11-23, dos pasadas). El 2026-11-22, con la captura simulada, el resultado
+fue el mismo.
 
 | Escenario | Resultado | Detalle |
 |---|---|---|
-| Ajustes abiertos con una captura activa | Cumple | Los tres tamaños salen desactivados y se lee «Hay una transcripción en marcha. Para cambiar el tamaño del modelo, detenla primero.» Abriendo los ajustes durante la captura, desde el primer momento (0,05 s); si ya estaban abiertos, en 0,16 s. Pulsar un tamaño desactivado no cambia nada. |
-| La captura termina | Cumple | Sin recargar, el selector vuelve a estar disponible y el texto desaparece: entre 0,2 y 0,5 s en dos páginas de ajustes abiertas a la vez. |
-| Fuera de la spec: clic en un tamaño justo al empezar la captura | Correcto | Los ajustes miran si hay captura una vez por segundo. Con un clic hecho antes de que lo hayan visto, el tamaño **no** se guarda y el aviso aparece (0,05 s). Al terminar la captura, el aviso se retira. |
+| Ajustes abiertos con una captura activa | Cumple | Los tres tamaños salen desactivados y se lee «Hay una transcripción en marcha. Para cambiar el tamaño del modelo, detenla primero.» Abriendo los ajustes durante la captura, desde el primer momento (0,06 y 0,10 s). Si ya estaban abiertos, 0,14 y 0,75 s después de pulsar «Iniciar»: miran una vez por segundo. Pulsar un tamaño desactivado no cambia nada. |
+| La captura termina | Cumple | Sin recargar, el selector vuelve a estar disponible y el texto desaparece: entre 0,04 y 0,63 s después de «Detener», en dos páginas de ajustes abiertas a la vez. |
+| Fuera de la spec: clic en un tamaño justo al empezar la captura | Correcto | Con un clic hecho antes de que los ajustes hayan visto la captura, el tamaño **no** se guarda y el aviso aparece (0,03 s). Al terminar la captura, el aviso se retira. |
+| Fuera de la spec: el panel todavía está en «Preparando…» | Correcto | Los ajustes ya no dejan cambiar el tamaño: el panel toma el bloqueo al pulsar «Iniciar» (a los 0,01 s del clic), antes de cargar el modelo. Visto en la primera pasada: los ajustes se desactivaron con el panel todavía preparando. |
 
 ## Los ajustes indican qué tamaños están descargados
 
@@ -116,8 +119,7 @@ Chrome 157.0.8103.80, después de añadir el límite de 30 segundos (tarea 2.5).
 
 ## Pendiente
 
-1. Con la tarea 3.3: repetir los dos escenarios de captura con una captura de verdad.
-2. Con la tarea 4.2: la parte de captura de «Elegir otro tamaño» y de «Reinicio del navegador»; en el panel,
+1. Con la tarea 4.2: la parte de captura de «Elegir otro tamaño» y de «Reinicio del navegador»; en el panel,
    que es donde los sitúa la spec, «La conexión se corta a mitad», «Reintento con la conexión recuperada» y
    «El servidor de descarga no contesta».
-3. En un Chrome con ventana: abrir los ajustes con el clic derecho en el icono → «Opciones».
+2. En un Chrome con ventana: abrir los ajustes con el clic derecho en el icono → «Opciones».

@@ -58,6 +58,9 @@ Después de volver a compilar, pulsa el botón de recargar de la extensión en `
 El clic en el icono es lo que da permiso a la extensión sobre esa pestaña: si quieres transcribir
 otra, haz clic en el icono estando en ella.
 
+Solo puede haber una transcripción en marcha a la vez. Si ya hay una en otra ventana, el panel lo
+dice y no ofrece «Iniciar» hasta que se detenga.
+
 ## Ajustes
 
 Se abren en una pestaña propia, de dos formas: con el enlace «Ajustes» del panel o con el clic derecho
@@ -126,7 +129,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `entrypoints/sidepanel/` | Página del panel (React). |
 | `entrypoints/options/` | Página de ajustes (React). Se abre en su propia pestaña. |
 | `src/engine/` | Interfaz del motor de transcripción, adaptador de Moonshine y lectura de la frase de calentamiento. Las pruebas del adaptador usan eventos reales de Moonshine guardados en `recorded-run.json`. |
-| `src/audio/` | Captura del audio de la pestaña, y cómo saben los ajustes si hay una captura en marcha. |
+| `src/audio/` | Captura del audio de la pestaña y captura única: el bloqueo que el panel toma al pulsar «Iniciar», y cómo saben los ajustes y los demás paneles si hay una captura en marcha. |
 | `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado, descarga única compartida entre el panel y los ajustes, y textos de una descarga que no se completa. Lo usan los ajustes; el panel, todavía no. |
 | `src/panel/` | Pestaña objetivo y texto del panel. |
 | `src/settings/` | Tamaño de modelo elegido (se guarda en este ordenador y es Tiny mientras no se elija otro) y lo que muestra la página de ajustes en cada momento. El panel todavía no usa el tamaño elegido. |

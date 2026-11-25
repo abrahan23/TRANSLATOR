@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
+import { holdCaptureLock, watchCapture, type CaptureLock, type CaptureWatch } from '@/src/audio/capture-lock';
 import { startTabCapture, type TabCapture } from '@/src/audio/tab-capture';
 import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
@@ -14,6 +15,8 @@ type Phase = 'idle' | 'preparing' | 'transcribing' | 'stopping';
 interface Session {
   engine: TranscriptionEngine;
   capture: TabCapture | null;
+  /** Captura única (design.md, D13): se toma al pulsar «Iniciar» y se suelta con todo ya liberado. */
+  lock: CaptureLock | null;
 }
 
 interface Download {
@@ -60,8 +63,11 @@ export default function App() {
   const [transcript, setTranscript] = useState<Transcript>(emptyTranscript);
   const [download, setDownload] = useState<Download | null>(null);
   const [error, setError] = useState<string | null>(null);
+  /** Hay una captura en alguna ventana: la de este panel o la de otro. */
+  const [captureActive, setCaptureActive] = useState(false);
   const session = useRef<Session | null>(null);
   const targetTracker = useRef<TargetTabTracker | null>(null);
+  const captureWatch = useRef<CaptureWatch | null>(null);
   const textBox = useRef<HTMLElement>(null);
   const followText = useRef(true);
 
@@ -70,6 +76,13 @@ export default function App() {
     const tracker = trackTargetTab(setTargetTab);
     targetTracker.current = tracker;
     return () => tracker.stop();
+  }, []);
+
+  useEffect(() => {
+    // Captura única (design.md, D13): mientras otra ventana captura, aquí no se ofrece «Iniciar».
+    const watch = watchCapture(setCaptureActive);
+    captureWatch.current = watch;
+    return () => watch.stop();
   }, []);
 
   useEffect(() => {
@@ -106,12 +119,24 @@ export default function App() {
       onDownloadProgress: (loaded, total) => setDownload({ loaded, total }),
       updateIntervalSec: wordLog ? testUpdateInterval() : undefined,
     });
-    const current: Session = { engine, capture: null };
+    const current: Session = { engine, capture: null, lock: null };
     session.current = current;
     targetTracker.current?.hold();
     setError(null);
     setPhase('preparing');
     try {
+      // El bloqueo se toma antes que nada. Si lo tiene otra ventana, aquí no empieza nada y el
+      // aviso de que hay otra captura sale en el acto.
+      current.lock = await holdCaptureLock();
+      if (!current.lock) {
+        if (session.current === current) {
+          session.current = null;
+          targetTracker.current?.release();
+        }
+        await refreshCaptureActive();
+        setPhase('idle');
+        return;
+      }
       await engine.load('tiny');
       setDownload(null);
       await engine.start(onEngineEvent);
@@ -125,6 +150,7 @@ export default function App() {
         // Se detuvo mientras se preparaba: no queda nada en marcha.
         await capture.stop();
         await engine.stop();
+        await current.lock.release();
         return;
       }
       current.capture = capture;
@@ -136,6 +162,7 @@ export default function App() {
         targetTracker.current?.release();
       }
       await engine.stop();
+      await endCapture(current);
       setDownload(null);
       setError(`No se ha podido empezar: ${describe(cause)}`);
       setPhase('idle');
@@ -150,12 +177,26 @@ export default function App() {
     // Primero deja de llegar audio; después el motor cierra el texto que tenga abierto.
     await current.capture?.stop();
     await current.engine.stop();
+    await endCapture(current);
     targetTracker.current?.release();
     if (message) setError(message);
     setPhase('idle');
   }
 
+  /** Con todo ya liberado, suelta el bloqueo: deja de haber captura y otra ventana puede empezar la suya. */
+  async function endCapture(ended: Session) {
+    await ended.lock?.release();
+    // Se mira en el acto para que este panel no tome su propia captura, recién terminada, por la de otra ventana.
+    await refreshCaptureActive();
+  }
+
+  /** Mira ya si hay una captura. Si ahora no se puede saber, lo dirá la siguiente comprobación. */
+  async function refreshCaptureActive() {
+    await captureWatch.current?.checkNow().catch(() => undefined);
+  }
+
   const capturing = phase === 'transcribing' || phase === 'stopping';
+  const otherCapture = captureActive && phase === 'idle';
   const empty = transcript.captures.every((capture) => capture.length === 0) && transcript.provisional.length === 0;
 
   return (
@@ -174,7 +215,11 @@ export default function App() {
               Detener
             </button>
           ) : (
-            <button type="button" onClick={() => void start()} disabled={!targetTab || phase === 'preparing'}>
+            <button
+              type="button"
+              onClick={() => void start()}
+              disabled={!targetTab || phase === 'preparing' || otherCapture}
+            >
               Iniciar
             </button>
           )}
@@ -183,6 +228,11 @@ export default function App() {
           </span>
         </div>
         {phase === 'transcribing' && <p className="capturing">Se está capturando el audio de esta pestaña.</p>}
+        {otherCapture && (
+          <p className="other-capture" role="status">
+            Ya hay una transcripción en marcha en otra ventana. Para empezar aquí, detenla primero.
+          </p>
+        )}
         <p className="notice">Solo se transcriben llamadas en inglés.</p>
         {wordLog && (
           <p>

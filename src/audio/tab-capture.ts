@@ -28,17 +28,21 @@ export async function startTabCapture(tabId: number, handlers: TabCaptureHandler
     audio: { mandatory: { chromeMediaSource: 'tab', chromeMediaSourceId: streamId } },
   } as MediaStreamConstraints);
 
-  // Mientras se captura una pestaña, Chrome deja de reproducirla: la reproduce la extensión.
-  const playback = new AudioContext();
-  const engineInput = new AudioContext({ sampleRate: ENGINE_SAMPLE_RATE });
+  const contexts: AudioContext[] = [];
   let stopped = false;
 
   const release = async () => {
     for (const track of stream.getTracks()) track.stop();
-    await Promise.allSettled([playback.close(), engineInput.close()]);
+    await Promise.allSettled(contexts.map((context) => context.close()));
   };
 
   try {
+    // Mientras se captura una pestaña, Chrome deja de reproducirla: la reproduce la extensión.
+    const playback = new AudioContext();
+    contexts.push(playback);
+    const engineInput = new AudioContext({ sampleRate: ENGINE_SAMPLE_RATE });
+    contexts.push(engineInput);
+
     playback.createMediaStreamSource(stream).connect(playback.destination);
 
     await engineInput.audioWorklet.addModule('/capture-worklet.js');

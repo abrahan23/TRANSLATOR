@@ -1,7 +1,7 @@
 # Comprobaciones y mediciones
 
-Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de las tareas 2.2 y 3.1. Cada
-cifra sale de una ejecución real. Lo que no se ha podido comprobar está dicho.
+Resultados de las comprobaciones del grupo 1 de `transcripcion-en-vivo` y de las tareas 2.2, 3.1, 3.2 y
+3.3. Cada cifra sale de una ejecución real. Lo que no se ha podido comprobar está dicho.
 
 ## Cómo se ha comprobado
 
@@ -326,6 +326,82 @@ Matices:
   de verdad. Para comprobar que detectan errores se cambió el código de 28 formas distintas, una cada vez:
   las 28 hicieron fallar alguna prueba.
 
+## 3.3 — La captura
+
+Fecha: 2026-11-23. Chrome 157.0.8103.80 sin ventana, la extensión compilada y un perfil que ya tiene Tiny
+guardado. No se descarga nada. Dos pasadas, con el mismo resultado: las cifras son de la segunda y, entre
+paréntesis, de la primera.
+
+Cómo se mide lo que nadie escucha:
+
+- La pestaña de la llamada reproduce un tono de 440 Hz en el canal izquierdo y otro de 1000 Hz en el
+  derecho, a un cuarto del máximo, o las ocho frases sintéticas.
+- En la página del panel, una sonda anota qué contextos de audio y qué conexiones crea la extensión, y mide
+  la señal que esta manda a la salida y los bloques que entrega al motor. No cambia el código de la
+  extensión.
+- Para que la prueba no suene por los altavoces, ese último tramo hacia la salida va a volumen cero. Lo
+  medido es lo que la extensión entrega, no lo que sale del altavoz.
+- La página de la llamada tiene su propio reloj de audio. Si Chrome la parase, ese reloj se retrasaría
+  respecto al reloj real.
+
+**Lo que oye el usuario (D8):**
+
+| Punto | Resultado | Detalle |
+|---|---|---|
+| Conexiones de audio que crea el panel | Las de D8 y ninguna más | La pista capturada (2 canales, 48 000 Hz) va directa a la salida, en un contexto a 48 000 Hz. Aparte, va al procesador de captura en otro contexto a 16 000 Hz. |
+| Lo que el panel manda a la salida | Igual que el original | Canal izquierdo: 440 Hz a 0,25 y nada de 1000 Hz. Canal derecho: 1000 Hz a 0,25 y nada de 440 Hz. No cambia el volumen ni se mezclan los canales. |
+| Cortes durante la captura | Ninguno | 20 lecturas seguidas en 6 s, mirando tramos de 10 ms: el nivel se queda entre 0,1749 y 0,1787 (el del tono es 0,1768). |
+| La pestaña no se para | Sí (solo en la segunda pasada) | Su reloj de audio se separa del real 3 ms como mucho: al pulsar «Iniciar» (en 1,8 s), durante la captura (8,3 s), al pulsar «Detener» (1,6 s) y después (1,5 s). Antes de capturar, 2 ms en 1,5 s. |
+| Chrome da la pestaña por audible | Antes, durante y después (solo en la segunda pasada) | Y sin silenciar en los tres momentos. Dice que la pestaña sigue produciendo sonido, no que alguien lo oiga. |
+
+**Lo que va al motor (D8):**
+
+| Punto | Resultado | Detalle |
+|---|---|---|
+| Bloques | De 800 muestras, 20 por segundo | 192 de 192 (165 de 165). 20,08 bloques por segundo en 6,2 s; los dos contextos de audio corren al ritmo del reloj real. |
+| Pestaña en estéreo | Llega un solo canal, con la media de los dos | Los dos tonos a 0,125, la mitad del original, y nada más. Igual que en 1.4. |
+| Con voz en la pestaña | Llega texto | Primera frase cerrada a los 4,3 s de empezar a sonar la voz (4,0 s). No es una medida del retardo. |
+
+**Todo se libera al terminar:**
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| «Detener» | No queda nada | El panel vuelve a «Iniciar» en menos de 0,05 s. La pista termina, los dos contextos de audio se cierran, Chrome deja de dar la pestaña por capturada y el bloqueo queda libre. |
+| Falla el segundo contexto de audio (fallo forzado) | No queda nada | «No se ha podido empezar: …» a los 0,3 s (0,4 s). Pista terminada, primer contexto cerrado, pestaña sin capturar y bloqueo libre. El siguiente «Iniciar» funciona. |
+| La pestaña objetivo ya estaba cerrada | No queda nada | «No se ha podido empezar: Invalid tab specified.» a los 0,4 s (0,3 s). Bloqueo libre. |
+| Se cierra la pestaña capturada | No queda nada | El panel vuelve a «Iniciar» con «La captura de la pestaña ha terminado.» en 0,04 s (0,03 s). Bloqueo libre. |
+| El panel que captura se cierra de golpe, sin limpiar nada | Lo libera Chrome | Bloqueo libre y ninguna pestaña capturada a los 0,4 s. La otra ventana ofrece «Iniciar» a los 1,0 s y captura. |
+
+**Captura única (D13).** El segundo panel es el panel lateral de una segunda ventana, abierto con el clic
+en el icono.
+
+| Caso | Resultado | Detalle |
+|---|---|---|
+| «Iniciar» | Toma el bloqueo antes que nada | A los 7 ms del clic (12 ms), con el panel en «Preparando…». Una sola vez y sin nadie esperando. |
+| Ajustes ya abiertos | Se desactivan sin recargar | A los 0,75 s del clic (0,14 s): miran una vez por segundo. Al detener vuelven a estar disponibles en 0,04 a 0,63 s. |
+| Panel de otra ventana, abierto durante una captura | No ofrece «Iniciar» | Desde el primer momento: botón desactivado y «Ya hay una transcripción en marcha en otra ventana. Para empezar aquí, detenla primero.» La captura en marcha sigue igual. |
+| La captura termina | La otra ventana ofrece «Iniciar» | A los 0,8 s, sin tocar nada. |
+| Al revés: captura la segunda ventana | La primera no ofrece «Iniciar» | Con el mismo aviso. |
+| «Iniciar» en las dos ventanas a la vez | Captura una sola: 12 de 12 | Seis rondas en cada pasada, alternando cuál se pulsa primero. Captura la que se pulsó primero. La otra vuelve a «Iniciar» desactivado, con el aviso y sin mensaje de error, en 0,03 a 0,04 s. En cada ronda hay una pestaña capturada y un bloqueo. |
+| El panel que captura | Nunca ve el aviso de «otra ventana» | Ni al empezar, ni al detener, ni después de un fallo. |
+
+Matices:
+
+- **Sin ventana nadie oye el audio ni ve el indicador de captura de la pestaña.** Lo que hay en su lugar es
+  lo de arriba: lo que el panel manda a la salida es igual al original y no tiene cortes, la pestaña no se
+  para, y Chrome deja de darla por capturada al detener. Escucharlo y ver desaparecer el indicador están
+  en la lista de abajo. El 2026-11-20 el usuario oyó un vídeo de YouTube durante una captura.
+- Los ajustes dejan de permitir el cambio de tamaño desde «Preparando…», no solo desde «Transcribiendo»: el
+  bloqueo se toma al pulsar «Iniciar».
+- Con el modelo ya guardado, el panel dice «Descargando el modelo de voz: N de 51 MB» durante 0,3 a 0,4 s en
+  cada «Iniciar». Es la lectura del modelo guardado, no una descarga (BL-55).
+- La pestaña objetivo es una sola para todas las ventanas: la del último clic en el icono. Dos paneles sin
+  captura muestran la misma (BL-56).
+- Pruebas automáticas: 29 en `src/audio/capture-lock.test.ts`, 12 de ellas de la captura única, con el
+  navegador simulado. Para comprobar que detectan errores se cambió la toma del bloqueo de 9 formas
+  distintas, una cada vez: las 9 hicieron fallar alguna prueba. La captura del audio no tiene pruebas
+  automáticas, como prevé el diseño (D16): es lo que se ha medido aquí.
+
 ## Pendiente en un Chrome con ventana
 
 1. Cerrar el panel con su X durante una captura: el indicador de captura de la pestaña desaparece y el
@@ -335,3 +411,7 @@ Matices:
 4. Dos clics seguidos con el ratón en el icono: el panel sigue abierto (tarea 3.2).
 5. Abrir el panel desde el menú de paneles laterales de Chrome, sin clic en el icono: pide hacer clic en
    el icono (tarea 3.2).
+6. Escuchar la pestaña antes de «Iniciar», durante la captura y después de «Detener»: suena igual, sin
+   cortes ni eco (tarea 3.3).
+7. El indicador de captura de la pestaña aparece al pulsar «Iniciar» y desaparece al pulsar «Detener»
+   (tarea 3.3).
