@@ -1,15 +1,16 @@
 # Escenarios recorridos en Chrome
 
 Escenarios de las specs comprobados en un Chrome de verdad, con su resultado y su fecha. De momento están
-los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5) y los de `captura-audio-pestana`
-sobre el fin de la captura y la pestaña que no se puede capturar (tarea 3.4). Los demás se añaden en la
-tarea 4.7. Lo que no se ha podido recorrer está dicho.
+los de `modelo-de-voz` que se ven en la página de ajustes (tareas 2.4 y 2.5), los de `captura-audio-pestana`
+sobre el fin de la captura y la pestaña que no se puede capturar (tarea 3.4) y los de `transcripcion-en-vivo`
+sobre el texto del panel (tarea 4.1). Los demás se añaden en la tarea 4.7. Lo que no se ha podido recorrer
+está dicho.
 
 ## Cómo se ha recorrido
 
 - **Equipo:** MacBook Air M1 (16 GB), macOS 26.6.2, Chrome 157.0.8103.79 y 157.0.8103.80. Fechas: 2026-11-22
-  y, para lo que necesita que la descarga avance o una captura de verdad, 2026-11-23. Los escenarios de la
-  tarea 3.4, el 2026-11-25 con Chrome 158.0.8127.37.
+  y, para lo que necesita que la descarga avance o una captura de verdad, 2026-11-23. Los escenarios de las
+  tareas 3.4 y 4.1, el 2026-11-25 con Chrome 158.0.8127.37.
 - **El clic en el icono** es el del protocolo de depuración (`Extensions.triggerAction`), no el del ratón:
   sin ventana no hay icono que pulsar.
 - **La extensión que corre es la compilada.** Un perfil que ya tenía la extensión puede seguir con el
@@ -159,6 +160,29 @@ durante 1,5 s: en ningún caso llega a decir «Transcribiendo».
 En el caso de la extensión sin activar y en el de la pestaña cerrada antes de «Iniciar», el panel dice
 durante unas décimas «Descargando el modelo de voz…» antes del mensaje, aunque el modelo ya está guardado
 (BL-55). Con una página protegida no: el mensaje sale al instante.
+
+## Texto del panel
+
+Recorrido el 2026-11-25 con Chrome 158.0.8127.37 y el Tiny ya guardado: no se descarga nada. La pestaña
+capturada reproduce el audio de referencia (voz en inglés). Son los escenarios de `transcripcion-en-vivo`
+que dependen del estado del panel (tarea 4.1). Las medidas están en `docs/medicion.md` (4.1).
+
+| Escenario | Resultado | Detalle |
+|---|---|---|
+| Silencio en la llamada | Cumple | Captura de 10 s con la pestaña en silencio: no aparece ningún texto y el panel sigue en «Transcribiendo». Al detenerla no queda un hueco ni una separación de más. |
+| Corrección del texto provisional | Cumple | El mismo párrafo provisional cambia de texto en su sitio: de «But» a «You just go.»; en otra pasada, de «Let me just go.» a «Let me just go on and let it go». En todo el recorrido no hay más de un párrafo provisional a la vez ni dos párrafos seguidos con el mismo texto. Las primeras frases del audio son tan cortas («Um,», «Okay.») que pasan a definitivo sin corrección intermedia: la corrección se ve con unos segundos más de voz. |
+| Un fragmento pasa a definitivo | Cumple | El texto provisional va en cursiva y gris; al cerrarse pasa a letra normal. Los fragmentos definitivos no cambian después: ni durante la captura, ni al detenerla, ni al hacer otra. |
+| La captura termina con un fragmento abierto | Cumple, con un matiz | «Detener» con «You just go.» en provisional: 82 ms después el panel ofrece «Iniciar», no queda nada provisional y hay un fragmento definitivo más, una sola vez. Matiz: el texto definitivo es la última versión que da el motor al cerrar («You just get on it and then you'»), no letra por letra el que se veía al pulsar. |
+| Nueva captura sin cerrar el panel | Cumple | El texto anterior sigue igual y el nuevo va debajo, en su propio bloque, con una línea discontinua encima. La línea aparece con el primer texto nuevo, no al pulsar «Iniciar». |
+| El usuario limpia la transcripción | Cumple | Con cinco fragmentos en dos bloques y un aviso a la vista, «Limpiar»: el panel queda sin texto, con la frase «Aquí aparecerá el texto de la llamada.», sin el aviso y con «Limpiar» apagado. No se pone nada en marcha. La captura siguiente empieza arriba, sin separación. |
+| Se cierra y se reabre el panel | Cumple | Visto en «Se cierra el panel» de la sección «Fin de la captura», repetida hoy con el panel nuevo: un panel abierto después empieza vacío. Además, un segundo panel abierto durante una captura no muestra el texto del primero. |
+| Fuera de la spec: «Limpiar» con una captura en marcha | Correcto | Está apagado en «Preparando…», «Transcribiendo» y «Deteniendo…», y pulsarlo desde el script no quita nada. También está apagado cuando no hay texto. |
+| Fuera de la spec: un «Iniciar» que no llega a empezar entre dos capturas | Correcto | En una página del navegador: sale el aviso, el texto sigue igual y no queda ningún bloque vacío ni una separación de más. |
+| Fuera de la spec: otro panel abierto durante la captura | Correcto | Dice «Ya hay una transcripción en marcha en otra ventana. Para empezar aquí, detenla primero.», con «Iniciar» y «Limpiar» apagados. Al detener la captura, quita el aviso y ofrece «Iniciar» (0,9 s después). El panel que captura no enseña ese aviso en ningún momento del recorrido. |
+| Fuera de la spec: panel estrecho (320 px) | Correcto | La fila de botones no se sale y «Limpiar» queda al final, en el mismo sitio con y sin el texto del estado. |
+
+Con el modelo ya guardado, cada «Iniciar» sigue pasando unas décimas por «Descargando el modelo de voz…»
+(BL-55).
 
 ## Pendiente
 

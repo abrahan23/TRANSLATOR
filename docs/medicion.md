@@ -488,6 +488,56 @@ Matices:
   formas distintas, una cada vez: las 23 hicieron fallar alguna prueba. El cableado del panel no tiene
   pruebas automáticas: es lo que se ha recorrido en Chrome.
 
+## 4.1 — El estado del panel
+
+Fecha: 2026-11-25. Chrome 158.0.8127.37 sin ventana, la extensión compilada y un perfil que ya tiene Tiny
+guardado. No se descarga nada. La pestaña capturada reproduce el audio de referencia. Una pasada completa,
+con 38 comprobaciones cumplidas de 38. Antes se repitió la pasada de la tarea 3.4 con el panel nuevo: 51 de
+51. Los escenarios de la spec, uno a uno, están en `docs/qa-manual.md`.
+
+Un observador en la página del panel anota cada estado por el que pasa, cómo está «Limpiar» en cada uno,
+los textos que va mostrando cada párrafo provisional y si aparece el aviso de «otra ventana». No cambia el
+código de la extensión.
+
+| Qué se mira | Resultado |
+|---|---|
+| De «Iniciar» a «Transcribiendo», con el modelo guardado | 0,36 s (0,72 s en la primera pasada) |
+| Estados de una captura | «Preparando…» → «Transcribiendo» → «Deteniendo…» → listo. «Limpiar» apagado en los tres. |
+| Corrección en su sitio | El mismo párrafo pasa de «But» a «You just go.», 1,8 s después del segundo fragmento definitivo. Nunca hay más de un párrafo provisional ni dos párrafos seguidos iguales. |
+| «Detener» con un fragmento abierto | 82 ms hasta «Iniciar». Un fragmento definitivo más y nada provisional. |
+| Texto tras dos capturas | Un bloque de 3 fragmentos, sin línea, y otro de 2, con una línea discontinua encima |
+| Segunda captura, mientras no tiene texto | No se ve ninguna línea |
+| «Iniciar» en una página del navegador, entre dos capturas | El aviso sale sin pasar por «Preparando…» y el texto no cambia |
+| 10 s de captura en silencio | Ningún texto y sigue en «Transcribiendo». Al detenerla quedan los mismos bloques que antes. |
+| «Limpiar» con texto y un aviso a la vista | Sin bloques, sin aviso, otra vez la frase del hueco y «Limpiar» apagado. Nada en marcha. |
+| Captura después de limpiar | Un solo bloque, sin línea |
+| Otro panel abierto durante la captura | Aviso de «otra ventana», con «Iniciar» y «Limpiar» apagados. 0,9 s después de «Detener» vuelve a ofrecer «Iniciar». |
+| El aviso de «otra ventana» en el panel que captura | Ninguna vez en todo el recorrido |
+| «Limpiar» con el panel a 360 y a 320 px | Pegado al final de la fila (a 344 y 304 px). No se mueve cuando aparece el texto del estado y la página no se sale de ancho. |
+| Al final | Ninguna pestaña capturada y el bloqueo libre |
+
+Matices:
+
+- **La primera pasada dio 31 de 33**, y las dos que fallaron eran de la comprobación, no del panel. Una
+  esperaba una corrección en las primeras frases del audio, que son tan cortas («And, um,», «You can't.»)
+  que pasan a definitivo sin corregirse. La otra no contaba con que el panel dice «Descargando…» con el
+  modelo ya guardado. Corregidas, 33 de 33; con el silencio de 10 s y el segundo panel añadidos, 38 de 38.
+- Con el modelo guardado, cada «Iniciar» pasa unas décimas por «Descargando el modelo de voz: 1, 3, 35, 43
+  y 51 de 51 MB» (BL-55). El panel anterior hacía lo mismo. Se decide en la tarea 4.2.
+- Al terminar con un fragmento abierto, el texto definitivo es la última versión que da el motor al cerrar
+  («You just get on it and then you'»), no letra por letra el provisional que se veía («You just go.»).
+- El estado tiene tres cosas que D10 no nombra: «Deteniendo…», el intento que no empieza porque otra
+  ventana ya captura y el intento que no empieza por otro motivo, con su texto.
+- D10 nombra tres finales que nada produce todavía: descarga cancelada, descarga fallida y modelo que no
+  arranca. Están en el estado, con pruebas automáticas, pero no se han visto en Chrome: llegan con la
+  tarea 4.2.
+- Sin recorrer: el fallo del motor a mitad de una captura (tarea 4.5). Todo es con la versión normal y sin
+  ventana; la de desarrollo no se ha pasado por Chrome en esta tarea.
+- Pruebas automáticas: 54 en `src/panel/panel-state.test.ts` y 6 nuevas en `src/panel/transcript.test.ts`
+  (ya son 10). Para comprobar que detectan errores se cambió el código de 53 formas distintas, una cada
+  vez. A la primera, 50 hicieron fallar alguna prueba; con tres comprobaciones más, las 53. El cableado
+  del panel no tiene pruebas automáticas: es lo que se ha recorrido en Chrome.
+
 ## Pendiente en un Chrome con ventana
 
 1. Cerrar el panel con su X durante una captura: el indicador de captura de la pestaña desaparece y el

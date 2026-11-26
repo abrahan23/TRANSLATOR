@@ -23,3 +23,18 @@ export function applyText(transcript: Transcript, final: Fragment[], provisional
   const current = transcript.captures.at(-1) ?? [];
   return { captures: [...previous, [...current, ...final]], provisional };
 }
+
+/**
+ * Termina una captura: el texto provisional que quede pasa a definitivo y ya no cambia. Una captura que
+ * no ha dejado texto no ocupa sitio, para que no queden separaciones sin nada entre ellas.
+ */
+export function finishCapture(transcript: Transcript): Transcript {
+  const previous = transcript.captures.slice(0, -1);
+  const current = [...(transcript.captures.at(-1) ?? []), ...transcript.provisional];
+  return { captures: current.length === 0 ? previous : [...previous, current], provisional: [] };
+}
+
+/** Si hay algún texto a la vista, definitivo o provisional. */
+export function hasText(transcript: Transcript): boolean {
+  return transcript.provisional.length > 0 || transcript.captures.some((capture) => capture.length > 0);
+}

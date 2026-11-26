@@ -55,7 +55,9 @@ Después de volver a compilar, pulsa el botón de recargar de la extensión en `
 3. Pulsa «Iniciar». La primera vez se descarga el modelo; después empieza en menos de un segundo.
 4. El texto aparece en el panel mientras se habla: en cursiva y gris mientras la frase sigue abierta,
    en normal cuando queda cerrada. La pestaña se sigue oyendo.
-5. Pulsa «Detener» para terminar. Si vuelves a pulsar «Iniciar», el texto nuevo va debajo del anterior.
+5. Pulsa «Detener» para terminar. Si vuelves a pulsar «Iniciar», el texto nuevo va debajo del anterior,
+   separado por una línea.
+6. «Limpiar» quita todo el texto del panel. Solo se puede pulsar con la transcripción detenida.
 
 El clic en el icono es lo que da permiso a la extensión sobre esa pestaña: si quieres transcribir
 otra, haz clic en el icono estando en ella. Si la pestaña pasa a otro sitio web antes de pulsar
@@ -142,7 +144,7 @@ La versión normal no contiene esa lista de palabras, y una prueba automática l
 | `src/engine/` | Interfaz del motor de transcripción, adaptador de Moonshine y lectura de la frase de calentamiento. Las pruebas del adaptador usan eventos reales de Moonshine guardados en `recorded-run.json`. |
 | `src/audio/` | Captura del audio de la pestaña y captura única: el bloqueo que el panel toma al pulsar «Iniciar», y cómo saben los ajustes y los demás paneles si hay una captura en marcha. |
 | `src/model/` | Modelo de voz: tabla de los tres tamaños, descarga cancelable, qué hay guardado, descarga única compartida entre el panel y los ajustes, y textos de una descarga que no se completa. Lo usan los ajustes; el panel, todavía no. |
-| `src/panel/` | Pestaña objetivo, texto del panel y avisos de la captura: por qué no se puede empezar y por qué ha terminado. |
+| `src/panel/` | Pestaña objetivo, estado del panel (por dónde va lo que empezó «Iniciar» y qué texto hay a la vista) y avisos de la captura: por qué no se puede empezar y por qué ha terminado. |
 | `src/settings/` | Tamaño de modelo elegido (se guarda en este ordenador y es Tiny mientras no se elija otro) y lo que muestra la página de ajustes en cada momento. El panel todavía no usa el tamaño elegido. |
 | `src/dev/` | Lista de palabras con su hora de aparición. Solo entra en la versión de desarrollo. |
 | `tools/` | Medición del retardo: audio de referencia, página que lo reproduce y comparación. También el recorte de la frase de calentamiento. |

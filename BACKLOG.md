@@ -759,3 +759,21 @@ Opciones valoradas el 2026-11-19. Solo Opus-MT se llegó a medir.
   - **C. Vigilar la pestaña desde el service worker:** sin comprobar que Chrome avise de una página rota con
     los permisos actuales.
 - **Cuándo retomarla:** si ocurre en llamadas reales. No bloquea nada.
+
+### BL-60 — Tres frases del diseño que ya no describen lo construido
+
+- **Estado:** Pendiente. El código y las pruebas están bien; lo que se ha quedado atrás es `design.md`.
+- **Qué se ha visto** (tareas 3.3, 3.4 y 4.1; `docs/medicion.md`):
+  - **D8** dice que la mezcla de una pestaña en estéreo «está sin comprobar». Se midió en la 3.3: llega un
+    solo canal, con la media de los dos.
+  - **D9** dice que el cierre de la pestaña se detecta porque Chrome avisa. El panel pregunta a Chrome cuando
+    la captura termina, en lugar de esperar el aviso. Tampoco está en su tabla el mensaje de «Chrome ha
+    dejado de capturar».
+  - **D10** no nombra «Deteniendo…», ni el intento que no empieza porque otra ventana ya captura, ni el que
+    no empieza por otro motivo.
+- **Opciones:**
+  - **A. Retocar las tres frases ahora:** unas líneas, y el diseño vuelve a decir lo que hay.
+  - **B. Retocarlas al cerrar el change** (tarea 5.5), junto con lo que salga en las tareas que faltan: un
+    solo repaso, pero hasta entonces el diseño no coincide en esos tres puntos.
+  - **C. Dejarlo:** `docs/medicion.md` ya cuenta las diferencias; quien lea solo el diseño no las ve.
+- **Cuándo retomarla:** cuando se diga. No bloquea nada.

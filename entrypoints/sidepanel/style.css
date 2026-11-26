@@ -97,6 +97,11 @@ body {
   cursor: default;
 }
 
+/* «Limpiar» va al final de la fila, para que no se mueva cuando cambia el texto del estado. */
+.controls .clear {
+  margin-left: auto;
+}
+
 .status,
 .notice {
   color: var(--muted);

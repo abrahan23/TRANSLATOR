@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useReducer, useRef, useState } from 'react';
 import { browser } from 'wxt/browser';
 import { holdCaptureLock, watchCapture, type CaptureLock, type CaptureWatch } from '@/src/audio/capture-lock';
 import { startTabCapture, type TabCapture } from '@/src/audio/tab-capture';
@@ -6,17 +6,10 @@ import { createWordLog } from '@/src/dev/word-log';
 import { createMoonshineEngine } from '@/src/engine/moonshine/adapter';
 import type { EngineEvent, TranscriptionEngine } from '@/src/engine/types';
 import { loadWarmUp } from '@/src/engine/warm-up';
-import {
-  PROTECTED_PAGE_TEXT,
-  captureEndText,
-  startFailureText,
-  whyCaptureEnded,
-  type CaptureEnd,
-} from '@/src/panel/capture-text';
+import { PROTECTED_PAGE_TEXT, startFailureText, whyCaptureEnded, type CaptureEnd } from '@/src/panel/capture-text';
+import { canClear, initialPanel, noticeText, reducePanel, statusText } from '@/src/panel/panel-state';
 import { targetTabText, trackTargetTab, type TargetTab, type TargetTabTracker } from '@/src/panel/target-tab';
-import { applyText, beginCapture, emptyTranscript, type Transcript } from '@/src/panel/transcript';
-
-type Phase = 'idle' | 'preparing' | 'transcribing' | 'stopping';
+import { hasText } from '@/src/panel/transcript';
 
 /** Lo que hay en marcha entre «Iniciar» y «Detener». */
 interface Session {
@@ -26,16 +19,10 @@ interface Session {
   lock: CaptureLock | null;
 }
 
-interface Download {
-  loaded: number;
-  total: number | undefined;
-}
-
 // Los ficheros de Moonshine van dentro de la extensión, en su carpeta `moonshine/`.
 const MOONSHINE_URL = new URL('/moonshine/', location.href).href;
 // La frase de calentamiento también: el motor la transcribe al cargarse y descarta su texto.
 const WARM_UP_URL = new URL('/warm-up.wav', location.href).href;
-const MEGABYTE = 1_000_000;
 /** A menos de esta distancia del final, la vista sigue al texto nuevo. */
 const FOLLOW_MARGIN_PX = 40;
 
@@ -50,22 +37,10 @@ function testUpdateInterval(): number | undefined {
   return seconds > 0 ? seconds : undefined;
 }
 
-function statusText(phase: Phase, download: Download | null): string {
-  if (phase === 'transcribing') return 'Transcribiendo';
-  if (phase === 'stopping') return 'Deteniendo…';
-  if (phase !== 'preparing') return '';
-  if (!download) return 'Preparando…';
-  const loaded = Math.round(download.loaded / MEGABYTE);
-  if (download.total === undefined) return `Descargando el modelo de voz: ${loaded} MB`;
-  return `Descargando el modelo de voz: ${loaded} de ${Math.round(download.total / MEGABYTE)} MB`;
-}
-
 export default function App() {
   const [targetTab, setTargetTab] = useState<TargetTab | null>(null);
-  const [phase, setPhase] = useState<Phase>('idle');
-  const [transcript, setTranscript] = useState<Transcript>(emptyTranscript);
-  const [download, setDownload] = useState<Download | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  // Por dónde va lo que empezó «Iniciar» y el texto a la vista (design.md, D10).
+  const [state, dispatch] = useReducer(reducePanel, initialPanel);
   /** Hay una captura en alguna ventana: la de este panel o la de otro. */
   const [captureActive, setCaptureActive] = useState(false);
   const session = useRef<Session | null>(null);
@@ -78,8 +53,7 @@ export default function App() {
     // Desde «Iniciar» hasta que termina la captura, la pestaña mostrada no cambia (design.md, D7).
     const tracker = trackTargetTab((tab) => {
       setTargetTab(tab);
-      // Lo que se dijo de la pestaña anterior ya no vale para la nueva.
-      setError(null);
+      dispatch({ type: 'target-changed' });
     });
     targetTracker.current = tracker;
     return () => tracker.stop();
@@ -99,10 +73,10 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    wordLog?.observe(transcript, Date.now());
+    wordLog?.observe(state.transcript, Date.now());
     const box = textBox.current;
     if (box && followText.current) box.scrollTop = box.scrollHeight;
-  }, [transcript]);
+  }, [state.transcript]);
 
   function onScroll() {
     const box = textBox.current;
@@ -112,7 +86,7 @@ export default function App() {
 
   function onEngineEvent(event: EngineEvent) {
     if (event.type === 'text') {
-      setTranscript((previous) => applyText(previous, event.final, event.provisional));
+      dispatch({ type: 'text', final: event.final, provisional: event.provisional });
     } else if (event.reason === 'failed') {
       void stop('engine-failed');
     }
@@ -120,22 +94,21 @@ export default function App() {
 
   async function start() {
     if (!targetTab || session.current) return;
+    dispatch({ type: 'start' });
     if (targetTab.protectedPage) {
       // Página protegida (design.md, D7): Chrome la capturaría sin dar error, así que no se le pide.
-      setError(PROTECTED_PAGE_TEXT);
+      dispatch({ type: 'ended', end: { reason: 'start-failed', text: PROTECTED_PAGE_TEXT } });
       return;
     }
     const engine = createMoonshineEngine({
       baseUrl: MOONSHINE_URL,
       warmUp: () => loadWarmUp(WARM_UP_URL),
-      onDownloadProgress: (loaded, total) => setDownload({ loaded, total }),
+      onDownloadProgress: (loadedBytes, totalBytes) => dispatch({ type: 'download-progress', loadedBytes, totalBytes }),
       updateIntervalSec: wordLog ? testUpdateInterval() : undefined,
     });
     const current: Session = { engine, capture: null, lock: null };
     session.current = current;
     targetTracker.current?.hold();
-    setError(null);
-    setPhase('preparing');
     try {
       // El bloqueo se toma antes que nada. Si lo tiene otra ventana, aquí no empieza nada y el
       // aviso de que hay otra captura sale en el acto.
@@ -146,14 +119,12 @@ export default function App() {
           targetTracker.current?.release();
         }
         await refreshCaptureActive();
-        setPhase('idle');
+        dispatch({ type: 'ended', end: { reason: 'other-capture' } });
         return;
       }
       await engine.load('tiny');
-      setDownload(null);
+      dispatch({ type: 'download-done' });
       await engine.start(onEngineEvent);
-      // Antes de que llegue audio: el texto de esta captura va debajo del de las anteriores.
-      setTranscript(beginCapture);
       const capture = await startTabCapture(targetTab.id, {
         onSamples: (samples) => engine.pushAudio(samples),
         onEnded: () => void whyCaptureEnded(targetTab.id).then(stop),
@@ -167,7 +138,7 @@ export default function App() {
       }
       current.capture = capture;
       followText.current = true;
-      setPhase('transcribing');
+      dispatch({ type: 'capture-started' });
     } catch (cause) {
       if (session.current === current) {
         session.current = null;
@@ -175,9 +146,7 @@ export default function App() {
       }
       await engine.stop();
       await endCapture(current);
-      setDownload(null);
-      setError(startFailureText(cause));
-      setPhase('idle');
+      dispatch({ type: 'ended', end: { reason: 'start-failed', text: startFailureText(cause) } });
     }
   }
 
@@ -185,15 +154,13 @@ export default function App() {
     const current = session.current;
     if (!current) return;
     session.current = null;
-    setPhase('stopping');
+    dispatch({ type: 'stop' });
     // Primero deja de llegar audio; después el motor cierra el texto que tenga abierto.
     await current.capture?.stop();
     await current.engine.stop();
     await endCapture(current);
     targetTracker.current?.release();
-    const message = captureEndText(reason);
-    if (message) setError(message);
-    setPhase('idle');
+    dispatch({ type: 'ended', end: { reason } });
   }
 
   /** Con todo ya liberado, suelta el bloqueo: deja de haber captura y otra ventana puede empezar la suya. */
@@ -208,9 +175,11 @@ export default function App() {
     await captureWatch.current?.checkNow().catch(() => undefined);
   }
 
-  const capturing = phase === 'transcribing' || phase === 'stopping';
-  const otherCapture = captureActive && phase === 'idle';
-  const empty = transcript.captures.every((capture) => capture.length === 0) && transcript.provisional.length === 0;
+  const { transcript } = state;
+  const { status } = state.phase;
+  const capturing = status === 'transcribing' || status === 'stopping';
+  const otherCapture = captureActive && status === 'ready';
+  const notice = noticeText(state);
 
   return (
     <main className="panel">
@@ -224,23 +193,31 @@ export default function App() {
         <p className="target">{targetTabText(targetTab)}</p>
         <div className="controls">
           {capturing ? (
-            <button type="button" onClick={() => void stop()} disabled={phase === 'stopping'}>
+            <button type="button" onClick={() => void stop()} disabled={status === 'stopping'}>
               Detener
             </button>
           ) : (
             <button
               type="button"
               onClick={() => void start()}
-              disabled={!targetTab || phase === 'preparing' || otherCapture}
+              disabled={!targetTab || status !== 'ready' || otherCapture}
             >
               Iniciar
             </button>
           )}
           <span className="status" aria-live="polite">
-            {statusText(phase, download)}
+            {statusText(state)}
           </span>
+          <button
+            type="button"
+            className="clear"
+            onClick={() => dispatch({ type: 'clear' })}
+            disabled={!canClear(state)}
+          >
+            Limpiar
+          </button>
         </div>
-        {phase === 'transcribing' && <p className="capturing">Se está capturando el audio de esta pestaña.</p>}
+        {status === 'transcribing' && <p className="capturing">Se está capturando el audio de esta pestaña.</p>}
         {otherCapture && (
           <p className="other-capture" role="status">
             Ya hay una transcripción en marcha en otra ventana. Para empezar aquí, detenla primero.
@@ -254,14 +231,14 @@ export default function App() {
             </button>
           </p>
         )}
-        {error && (
+        {notice && (
           <p className="error" role="alert">
-            {error}
+            {notice}
           </p>
         )}
       </header>
       <section className="transcript" ref={textBox} onScroll={onScroll}>
-        {empty && <p className="placeholder">Aquí aparecerá el texto de la llamada.</p>}
+        {!hasText(transcript) && <p className="placeholder">Aquí aparecerá el texto de la llamada.</p>}
         {transcript.captures.map((capture, index) => (
           <div className="capture" key={index}>
             {capture.map((fragment) => (
